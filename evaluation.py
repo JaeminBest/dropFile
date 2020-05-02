@@ -68,15 +68,12 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='dropFile evaluation program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test')
-  parser.add_argument('-f', '--input-file', help='full evaluation, compute for all combination',
+  parser.add_argument('-f', help='full evaluation, compute for all combination',
                       type=str, action='store_true')
   args = parser.parse_args()
   
-  if (args.input_file is None):
-    parser.error("--input-file(-i) format should be specified")
-  
-  print("Running DropFile...")
+  print("Running Evaluation DropFile...")
   start = time.time()
-  evaluation(args.input_file, args.root_path)
+  evaluation(args.root_path)
   print("elapsed time: {}sec".format(time.time()-start))
   print("Execution Result: {}".format(recommendation_path))

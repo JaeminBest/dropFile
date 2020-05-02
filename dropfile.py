@@ -5,8 +5,8 @@ import numpy as np
 
 # cosine similarity
 def cosine_similarity(A,B):
-  ndA = np.ndarray(A)
-  ndB = np.ndarray(B)
+  ndA = np.asarray(A)
+  ndB = np.asarray(B)
   return np.dot(ndA,ndB)/(np.linalg.norm(ndA)*np.linalg.norm(ndB))
 
 # main body of program: DropFile
@@ -33,7 +33,7 @@ def dropfile(input_file: str, root_path: str):
   
   # preprocessing : build BoW, DTM score of input file
   inbow = preprocessing.build_BoW(input_file)
-  dtm_vec = np.ndarray(preprocessing.build_DTMvec(inbow))
+  dtm_vec = preprocessing.build_DTMvec(inbow,vocab_list)
   
   # similarity calculation using cosine similarity
   sim_vec = list()

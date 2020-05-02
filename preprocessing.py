@@ -16,15 +16,15 @@ from io import StringIO
 #          and list of file name inside the directory as value
 # implementation : os 라이브러리 사용하면 될듯, UNIX 환경 가정 (mac, ubuntu)
 def lookup_directory(root_path: str):
-  pass
+  return dict()
 
 
 # function : read pdf file and convert into text(string) format
 # input : file_path
 # output : text
 # implementation : pdfminer 라이브러리 사용 (ref: https://lsjsj92.tistory.com/304)
-def fiile2text(file_path: str):
-  pass
+def file2text(file_path: str):
+  return "sample text"
 
 
 # function : convert text into list of parsed token
@@ -32,7 +32,7 @@ def fiile2text(file_path: str):
 # output : list of parsed token, 의미를 가지는 토큰만 포함한 리스트
 # implementation : Regex 라이브러리로 필터링
 def text2tok(text: str):
-  pass
+  return ["sample", "text"]
 
 
 # function : convert token list into BoW
@@ -41,12 +41,12 @@ def text2tok(text: str):
 # output : BoW
 #         ex) {"I": 2, "love": 1, "her": 1, ....}
 def tok2bow(token_list: str):
-  pass
+  return {"sample": 1, "text": 1}
   
 
 # function : build BoW
 def build_BoW(file_path: str):
-  txt = file2txt(file_path)
+  txt = file2text(file_path)
   tok = text2tok(txt)
   bow = tok2bow(tok)
   return bow
@@ -60,8 +60,8 @@ def build_BoW(file_path: str):
 #         ex) vocab_list : ["I", "love", "her"]
 #         ex) DTM : [[1,2,4,,...](1st file),[3,5,2,...](2nd file), ...]
 def build_DTM(bow_list):
-  vocab_list = None
-  DTM = None
+  vocab_list = ["sample", "text"]
+  DTM = [[1,2],[2,0]]
   return vocab_list, DTM
 
 
@@ -69,4 +69,4 @@ def build_DTM(bow_list):
 # input : single BoW of input_file and vacab list from files under root path
 # output : list(not ndarray) of total vocab list, DTM
 def build_DTMvec(bow, vocab_list):
-  return 
+  return [1,0]
