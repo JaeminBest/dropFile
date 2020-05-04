@@ -4,7 +4,15 @@ from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
+from pdfminer.high_level import extract_text
 from io import StringIO
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+lm = WordNetLemmatizer()
+
+import re
+
 
 
 # function : lookup directory hierarchy under root_path
@@ -24,7 +32,8 @@ def lookup_directory(root_path: str):
 # output : text
 # implementation : pdfminer 라이브러리 사용 (ref: https://lsjsj92.tistory.com/304)
 def file2text(file_path: str):
-  return "sample text"
+  text = extract_text(file_path) # extract text from pdf file
+  return text
 
 
 # function : convert text into list of parsed token
@@ -32,7 +41,14 @@ def file2text(file_path: str):
 # output : list of parsed token, 의미를 가지는 토큰만 포함한 리스트
 # implementation : Regex 라이브러리로 필터링
 def text2tok(text: str):
-  return ["sample", "text"]
+  words = word_tokenize(text) # tokenize words by nltk word_toknizer
+  stops = stopwords.words('english')
+  words = [word.lower() for word in words] # convert uppercase to lowercase
+  words = [word for word in words if word not in stops] # remove stopwords
+  # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
+  words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
+  words = [lm.lemmatize(word) for word in words] # lemmatize words
+  return words
 
 
 # function : convert token list into BoW
@@ -70,3 +86,9 @@ def build_DTM(bow_list):
 # output : list(not ndarray) of total vocab list, DTM
 def build_DTMvec(bow, vocab_list):
   return [1,0]
+
+if __name__ == "__main__":
+  test_file_path = "C://dropFile/test/nlp.pdf" # change it for your own test file
+  text = file2text(test_file_path)
+  words = text2tok(text)
+  print(words)
