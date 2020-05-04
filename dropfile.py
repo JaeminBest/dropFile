@@ -9,6 +9,7 @@ def cosine_similarity(A,B):
   ndB = np.asarray(B)
   return np.dot(ndA,ndB)/(np.linalg.norm(ndA)*np.linalg.norm(ndB))
 
+
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
