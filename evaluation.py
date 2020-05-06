@@ -1,6 +1,8 @@
 # evaluation code
 import argparse
 import os
+import random
+import shutil
 import preprocessing
 import dropfile
 from tqdm import tqdm
@@ -19,10 +21,63 @@ INITIAL_PATH = './test'
 #          label (test의 input으로 들어갈 파일들에 대한 올바른 결과값에 대한 리스트)
 #          testset (test에 사용될 파일들의 절대경로 리스트, e.g. ["/test/nlp-1.pdf",..], 원래 파일들이 있었던 경로로 지정)
 # implementation : os 라이브러리 사용
-def prepare_env(file_list, locate_flag):
-  testset = list()
-  label = list()
-  test_path = None
+def prepare_env(file_list: list, locate_flag: list):
+  current_path = os.getcwd()
+  test_path = current_path + "\\eval\\"
+
+  label = ["" for _ in range(len(file_list))]
+
+  find_common_parent_dir = []
+  if test_path not in os.listdir(current_path):
+    os.mkdir(test_path)
+
+  try:
+    # 가장 상위의 공통 디렉토리를 찾는다.
+    for file_name in file_list:
+      find_common_parent_dir.append(os.path.split(file_name)[0].split("\\"))  # \n이나 /를 기준으로 자른다
+
+    compare_dir = find_common_parent_dir[0]
+    for temp_dir in find_common_parent_dir[1:]:
+      print(compare_dir)
+      if len(compare_dir) < len(temp_dir):
+        continue
+      elif len(compare_dir) == len(temp_dir):
+        if compare_dir[-1] != temp_dir[-1]:
+          compare_dir = compare_dir[:-1]
+        else:
+          continue
+      else:
+        compare_dir = temp_dir
+
+    # 가장 상위의 공통 디렉토리
+    common_parent_dir = "\\".join(compare_dir)
+
+    for idx, file_name in enumerate(file_list):
+      file_dir = os.path.split(file_name)[0]
+      # 파일이 common_parent_dir보다 하위 디렉토리에 있다면, 하위 디렉토리들을 생성한 후 copy
+      if file_dir != common_parent_dir:
+        a = file_dir.split("\\")
+        b = common_parent_dir.split("\\")
+        additional_path = a[len(b):]
+        temp_path = test_path[:-1]
+        for i in range(len(additional_path)):
+          subdir = temp_path + "\\" + additional_path[i]
+          if additional_path[i] not in os.listdir(temp_path):
+            os.mkdir(subdir)
+          temp_path = subdir
+
+        label[idx] = subdir
+
+        if locate_flag[idx]:
+          shutil.copy2(file_name, subdir)
+      else:
+        shutil.copy2(file_name, test_path)
+        label[idx] = test_path
+
+  except PermissionError:
+    pass
+
+  testset = file_list
   return test_path, label, testset
 
 
@@ -31,7 +86,23 @@ def prepare_env(file_list, locate_flag):
 # output : list of locate_flag
 # implementation : output의 각 element는 위 prepare_env 함수의 locate_flag로 들어갈 수 있는 포맷이어야함
 def calculate_combination(file_list):
-  return 
+  global INITIAL_TEST_FRAC
+  temp_dict = {}
+  locate_flag = [False for _ in range(len(file_list))]
+  for file_name in file_list:
+    folder_name = os.path.split(file_name)[0]
+    if folder_name in temp_dict:
+      temp_dict[folder_name].append(file_name)
+    else:
+      temp_dict[folder_name] = [file_name]
+
+  for folder_name in temp_dict:
+    chosen_files = random.sample(temp_dict[folder_name], round(len(temp_dict[folder_name]) * INITIAL_TEST_FRAC))
+    for file in chosen_files:
+      locate_index = file_list.index(file)
+      locate_flag[locate_index] = True
+
+  return locate_flag
 
 
 # evaluate for experiment

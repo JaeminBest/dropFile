@@ -1,5 +1,6 @@
 # preprocessing code
 import os
+import re
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
@@ -11,20 +12,38 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 lm = WordNetLemmatizer()
 
-import re
+
 
 
 
 # function : lookup directory hierarchy under root_path
-# input : root_path
+# input : root_path, empty dictionary for storage
 # output : dictionary, 
 #          key = 분류할 디렉토리의 절대경로, 
 #          value = 그(key) 디렉토리 안에 있는 file_name(절대경로)의 리스트 
 # output : dictionary that having absolute directory path as key 
 #          and list of file name inside the directory as value
 # implementation : os 라이브러리 사용하면 될듯, UNIX 환경 가정 (mac, ubuntu)
-def lookup_directory(root_path: str):
-  return dict()
+def lookup_directory(root_path: str, directory_dict: dict):
+  try:
+    root = os.listdir(root_path)
+    if root:
+      for filename in root:
+        full_filename = os.path.join(root_path, filename)
+        if os.path.isdir(full_filename):
+          lookup_directory(full_filename, directory_dict)
+        else:
+          extension = os.path.splitext(full_filename)[-1]
+          if extension == '.pdf':
+            if root_path in directory_dict:
+              directory_dict[root_path].append(full_filename)
+            else:
+              directory_dict[root_path] = [full_filename]
+    else:
+      return
+  except PermissionError:
+    pass
+  return
 
 
 # function : read pdf file and convert into text(string) format
