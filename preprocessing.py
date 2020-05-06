@@ -90,6 +90,9 @@ def build_vocab(doc_list: list):
 
 
 # function : build BoW
+# input : doc (list of tokens), vocab (root_path으로부터 build_vocab로 만든 vocabulary)
+# output : bow 
+#          ex) [1,2,4,,...]
 def build_BoW(doc: list, vocab: dict):
   bow = [0] * len(vocab.keys())
   for token in doc:
@@ -98,6 +101,7 @@ def build_BoW(doc: list, vocab: dict):
     except KeyError:  # token이 vocabulary에 없는 경우 지금은 pass로 구현했지만 다른 구현 고려 가능
         pass          # ex : vocab에 UNK라는 token을 만들어 주고 bow[vocab['UNK']] += 1
   return bow
+
 
 # function : build vocab list out of each list_of parsed token
 # input : list of doc
@@ -112,9 +116,9 @@ def build_DTM(doc_list: list, vocab: dict):
   return DTM
 
 
-# function : build vocab list out of each list_of parsed token
-# input : single BoW of input_file and vacab list from files under root path
-# output : list(not ndarray) of total vocab list, DTM
+# function : make DTMvec from input_file (bow of input_file)
+# input : file_path of input_file, vocab
+# output : DTMvec (bow)
 def build_DTMvec(file_path: str, vocab: dict):
   txt = file2text(file_path)
   doc = text2tok(txt)
@@ -139,7 +143,7 @@ if __name__ == "__main__":
   print(DTM)
   print(DTM.shape)
   
-  # preprocessing : build BoW, DTM score of input file
+  # preprocessing : build DTMvec from input file
   dtm_vec = build_DTMvec(test_file_path, vocab)
   print(dtm_vec)
   print(len(dtm_vec))
