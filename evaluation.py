@@ -6,6 +6,9 @@ import shutil
 import preprocessing
 import dropfile
 from tqdm import tqdm
+import time # add time module
+from collections import defaultdict
+import sys
 
 INITIAL_TEST_FRAC = 0.6
 INITIAL_PATH = './test'
@@ -23,18 +26,18 @@ INITIAL_PATH = './test'
 # implementation : os 라이브러리 사용
 def prepare_env(file_list: list, locate_flag: list):
   current_path = os.getcwd()
-  test_path = current_path + "\\eval\\"
+  test_path = current_path + "/eval/"
 
   label = ["" for _ in range(len(file_list))]
 
   find_common_parent_dir = []
   if test_path not in os.listdir(current_path):
-    os.mkdir(test_path)
+    os.makedirs(test_path, exist_ok=True)
 
   try:
     # 가장 상위의 공통 디렉토리를 찾는다.
     for file_name in file_list:
-      find_common_parent_dir.append(os.path.split(file_name)[0].split("\\"))  # \n이나 /를 기준으로 자른다
+      find_common_parent_dir.append(os.path.split(file_name)[0].split("/"))  # \n이나 /를 기준으로 자른다
 
     compare_dir = find_common_parent_dir[0]
     for temp_dir in find_common_parent_dir[1:]:
@@ -50,24 +53,25 @@ def prepare_env(file_list: list, locate_flag: list):
         compare_dir = temp_dir
 
     # 가장 상위의 공통 디렉토리
-    common_parent_dir = "\\".join(compare_dir)
+    common_parent_dir = "/".join(compare_dir)
 
     for idx, file_name in enumerate(file_list):
       file_dir = os.path.split(file_name)[0]
       # 파일이 common_parent_dir보다 하위 디렉토리에 있다면, 하위 디렉토리들을 생성한 후 copy
       if file_dir != common_parent_dir:
-        a = file_dir.split("\\")
-        b = common_parent_dir.split("\\")
+        a = file_dir.split("/")
+        b = common_parent_dir.split("/")
         additional_path = a[len(b):]
         temp_path = test_path[:-1]
+        
         for i in range(len(additional_path)):
-          subdir = temp_path + "\\" + additional_path[i]
+          subdir = temp_path + "/" + additional_path[i]
           if additional_path[i] not in os.listdir(temp_path):
-            os.mkdir(subdir)
+            os.makedirs(subdir,exist_ok=True)
           temp_path = subdir
 
         label[idx] = subdir
-
+        
         if locate_flag[idx]:
           shutil.copy2(file_name, subdir)
       else:
@@ -108,7 +112,8 @@ def calculate_combination(file_list):
 # evaluate for experiment
 def evaluation(root_path: str):
   # preprocessing : lookup hierarchy of root path
-  dir_hierarchy = preprocessing.lookup_directory(root_path)
+  directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
+  dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
   file_list = list()
   dir_list = list()
   label_num = 0
@@ -119,19 +124,22 @@ def evaluation(root_path: str):
   
   # calculate combination
   combination = calculate_combination(file_list)
-  
+  print('combination: ',combination)
   # start evaluation
   print("Start evaluation..")
   trial = 0
   correct = 0
+
   for locate_flag in tqdm(combination,mininterval=1):
-    test_path, label, testset = prepare_env(file_list,locate_flag)
+    test_path, label, testset = prepare_env(file_list,locate_flag) 
+
     for i,input_path in enumerate(testset):
       trial +=1
       answer = dropfile.dropfile(input_path,test_path)
       if (answer==label[i]):
         correct += 1
   print("Evaluation Result: {}/{}".format(correct,trial))
+  
 
 
 # main execution command
@@ -139,8 +147,8 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='dropFile evaluation program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test')
-  parser.add_argument('-f', help='full evaluation, compute for all combination',
-                      type=str, action='store_true')
+  """parser.add_argument('-f', help='full evaluation, compute for all combination',
+                      type=str, action='store_true')"""
   args = parser.parse_args()
   
   print("Running Evaluation DropFile...")

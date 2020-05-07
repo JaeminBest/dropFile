@@ -2,7 +2,7 @@ import argparse
 import time
 import preprocessing
 import numpy as np
-
+from collections import defaultdict
 # cosine similarity
 def cosine_similarity(A,B):
   ndA = np.asarray(A)
@@ -14,8 +14,10 @@ def cosine_similarity(A,B):
 # input : input file path, root path 
 # output : recommended path
 def dropfile(input_file: str, root_path: str):
+  
   # preprocessing : lookup hierarchy of root path
-  dir_hierarchy = preprocessing.lookup_directory(root_path)
+  directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
+  dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
   file_list = list()
   dir_list = list()
   label_num = 0
@@ -53,7 +55,7 @@ def dropfile(input_file: str, root_path: str):
     offset += file_num
 
   # find directory that has maximum score
-  dir_path = dir_list(label_score.index(max(label_score)))
+  dir_path = dir_list[label_score.index(max(label_score))]
   return dir_path
 
 
@@ -65,7 +67,7 @@ if __name__=='__main__':
   parser.add_argument('-i', '--input-file', help='input file initial path',
                       type=str, action='store')
   args = parser.parse_args()
-  
+  print('root path : {}, input file: {}'.format(args.root_path, args.input_file))
   if (args.input_file is None):
     parser.error("--input-file(-i) format should be specified")
   

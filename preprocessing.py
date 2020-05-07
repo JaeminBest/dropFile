@@ -41,10 +41,10 @@ def lookup_directory(root_path: str, directory_dict: dict):
             else:
               directory_dict[root_path] = [full_filename]
     else:
-      return
+      return directory_dict # add return value
   except PermissionError:
     pass
-  return
+  return directory_dict # add return value
 
 
 # function : read pdf file and convert into text(string) format
@@ -127,10 +127,10 @@ def build_DTMvec(file_path: str, vocab: dict):
 
 
 if __name__ == "__main__":
-  test_file_path = "C://Users//us419//Desktop//OS//04_programming_interface.pdf" # change it for your own test file
-  file_list = ["C://Users//us419//Desktop//OS//01_introduction.pdf",
-  "C://Users//us419//Desktop//OS//02_kernel.pdf",
-  "C://Users//us419//Desktop//OS//03_scheduling.pdf"]
+  test_file_path = "/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-31-Graphics and Image representation.pdf" # change it for your own test file
+  file_list = ["/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-17-course introduction.pdf",
+  "/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-19-What is MM.pptx.pdf",
+  "/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-24-Enabing technology full.pdf"]
   doc_list = list()
   for file in file_list:
     doc_list.append(file2tok(file))
