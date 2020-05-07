@@ -24,17 +24,17 @@ def dropfile(input_file: str, root_path: str):
     dir_list.append(tar_dir)
     label_num += 1
   
-  # preprocessing : build list of BoW
-  bow_list = list()
+  # preprocessing : build vocabulary from file_list
+  doc_list = list()
   for file in file_list:
-    bow_list.append(preprocessing.build_BoW(file))
+    doc_list.append(preprocessing.file2tok(file))
+  vocab = preprocessing.build_vocab(doc_list)
   
-  # preprocessing : build DTM, vocab_list of files under root_path
-  vocab_list, DTM = preprocessing.build_DTM(bow_list)
+  # preprocessing : build DTM of files under root_path
+  DTM = preprocessing.build_DTM(doc_list, vocab)
   
   # preprocessing : build BoW, DTM score of input file
-  inbow = preprocessing.build_BoW(input_file)
-  dtm_vec = preprocessing.build_DTMvec(inbow,vocab_list)
+  dtm_vec = preprocessing.build_DTMvec(input_file, vocab)
   
   # similarity calculation using cosine similarity
   sim_vec = list()

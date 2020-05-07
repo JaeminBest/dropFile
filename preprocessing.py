@@ -10,6 +10,7 @@ from io import StringIO
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+import numpy as np
 lm = WordNetLemmatizer()
 
 
@@ -70,44 +71,79 @@ def text2tok(text: str):
   return words
 
 
-# function : convert token list into BoW
-# input : list of token
-#         ex) ["I", "love", "her", ...]
-# output : BoW
-#         ex) {"I": 2, "love": 1, "her": 1, ....}
-def tok2bow(token_list: str):
-  return {"sample": 1, "text": 1}
-  
 
-# function : build BoW
-def build_BoW(file_path: str):
+# root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
+def file2tok(file_path: str):
   txt = file2text(file_path)
   tok = text2tok(txt)
-  bow = tok2bow(tok)
+  return tok 
+
+def build_vocab(doc_list: list):
+  vocab = {}
+  idx = 0
+  for doc in doc_list:
+      for token in doc:
+          if not token in vocab.keys():
+              vocab[token] = idx
+              idx += 1
+  return vocab
+
+
+# function : build BoW
+# input : doc (list of tokens), vocab (root_path으로부터 build_vocab로 만든 vocabulary)
+# output : bow 
+#          ex) [1,2,4,,...]
+def build_BoW(doc: list, vocab: dict):
+  bow = [0] * len(vocab.keys())
+  for token in doc:
+    try:
+        bow[vocab[token]] += 1
+    except KeyError:  # token이 vocabulary에 없는 경우 지금은 pass로 구현했지만 다른 구현 고려 가능
+        pass          # ex : vocab에 UNK라는 token을 만들어 주고 bow[vocab['UNK']] += 1
   return bow
 
 
 # function : build vocab list out of each list_of parsed token
-# input : list of BoW
-#        ex) [{"I": 2, "love": 1, "her": 1, ....}(1st file),
-#             {"I": 2, "love": 1, "her": 1, ....}(2nd file),{..},{..}]
-# output : list of total vocab list, DTM
-#         ex) vocab_list : ["I", "love", "her"]
+# input : list of doc
+#        ex) [["I", "love", "her", ....](1st file),
+#             ["I", "love", "her", ....](2nd file),[..],[..]]
+# output : list of bow, DTM
 #         ex) DTM : [[1,2,4,,...](1st file),[3,5,2,...](2nd file), ...]
-def build_DTM(bow_list):
-  vocab_list = ["sample", "text"]
-  DTM = [[1,2],[2,0]]
-  return vocab_list, DTM
+def build_DTM(doc_list: list, vocab: dict):
+  DTM = []
+  for doc in doc_list:
+    DTM.append(build_BoW(doc, vocab))
+  return DTM
 
 
-# function : build vocab list out of each list_of parsed token
-# input : single BoW of input_file and vacab list from files under root path
-# output : list(not ndarray) of total vocab list, DTM
-def build_DTMvec(bow, vocab_list):
-  return [1,0]
+# function : make DTMvec from input_file (bow of input_file)
+# input : file_path of input_file, vocab
+# output : DTMvec (bow)
+def build_DTMvec(file_path: str, vocab: dict):
+  txt = file2text(file_path)
+  doc = text2tok(txt)
+  bow = build_BoW(doc, vocab)
+  return bow
+
 
 if __name__ == "__main__":
-  test_file_path = "C://dropFile/test/nlp.pdf" # change it for your own test file
-  text = file2text(test_file_path)
-  words = text2tok(text)
-  print(words)
+  test_file_path = "C://Users//us419//Desktop//OS//04_programming_interface.pdf" # change it for your own test file
+  file_list = ["C://Users//us419//Desktop//OS//01_introduction.pdf",
+  "C://Users//us419//Desktop//OS//02_kernel.pdf",
+  "C://Users//us419//Desktop//OS//03_scheduling.pdf"]
+  doc_list = list()
+  for file in file_list:
+    doc_list.append(file2tok(file))
+  vocab = build_vocab(doc_list)
+  print(vocab)
+  
+  # preprocessing : build DTM of files under root_path
+  DTM = build_DTM(doc_list, vocab)
+  DTM = np.array(DTM)
+  print(DTM)
+  print(DTM.shape)
+  
+  # preprocessing : build DTMvec from input file
+  dtm_vec = build_DTMvec(test_file_path, vocab)
+  print(dtm_vec)
+  print(len(dtm_vec))
