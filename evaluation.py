@@ -125,7 +125,7 @@ def calculate_combination(file_list, simple_flag=False):
 
 
 # evaluate for experiment
-def evaluation(root_path: str, simple_flag: bool):
+def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
@@ -137,12 +137,20 @@ def evaluation(root_path: str, simple_flag: bool):
     dir_list.append(tar_dir)
     label_num += 1
   
+  if interim_flag:
+    if (len(dir_list) not in [3,4]):
+      raise Exception("you should put only 3 or 4 directories in ROOT_PATH")
+  
   # calculate combination
   print("Calculating Evaluation combination..")
   combination = calculate_combination(file_list,simple_flag)
   
   # start evaluation
   print("Start evaluation..")
+  
+  if interim_flag:
+    conf_mat = [[0 for _ in range(len(dir_list))] for _ in range(len(dir_list))] # 3x3 or 4x4 confusion matrix
+  
   trial = 0
   correct = 0
   total_len = len(combination)
@@ -157,15 +165,18 @@ def evaluation(root_path: str, simple_flag: bool):
     for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
       trial +=1
       if (vocab is None) and (DTM is None):
-        # print("input", input_path)
         answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
-        # print("answer", answer)
-        # print("answer comp", label[j])
       else:
         answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab)
       if (answer==label[j]):
         correct += 1
         local_correct += 1
+        if interim_flag:
+          pass
+      else:
+        if interim_flag:
+          pass
+        
     # delete test environment
     shutil.rmtree(test_path)
     print("iteration-{}: {}/{} correct".format(i+1,local_correct,len(testset)))
@@ -179,9 +190,10 @@ if __name__=='__main__':
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test')
   parser.add_argument('-f', help='force simple evaluation, compute for simple combination',default=False, action='store_true')
+  parser.add_argument('-e', help='experiment option for interim report', default=False, action='store_true')
   args = parser.parse_args()
   
   print("Running Evaluation DropFile...")
   start = time.time()
-  evaluation(args.root_path, args.f)
+  evaluation(args.root_path, args.f, args.e)
   print("elapsed time: {}sec".format(time.time()-start))
