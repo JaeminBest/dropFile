@@ -51,9 +51,10 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None):
       label_score[label] += sim_vec[offset+j]
     label_score[label] /= file_num
     offset += file_num
-  
+  # print(label_score)
   # find directory that has maximum score
   dir_path = dir_list[label_score.index(max(label_score))]
+  # print(dir_path)
   return dir_path, DTM, vocab
 
 

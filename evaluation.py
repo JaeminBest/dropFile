@@ -87,14 +87,22 @@ def prepare_env(comb_num: int, file_list: list, locate_flag: list):
     if not flag:
       testset.append(file_list[idx])
       true_label.append(label[idx])
-  return test_path, label, testset
+  return test_path, true_label, testset
 
 
 # function : evaluation이 이루어질 모든 경우의 location_flag 리스트를 구한다
 # input : file_list
 # output : list of locate_flag
 # implementation : output의 각 element는 위 prepare_env 함수의 locate_flag로 들어갈 수 있는 포맷이어야함
-def calculate_combination(file_list):
+def calculate_combination(file_list, simple_flag=False):
+  lf_list = list()
+  if simple_flag:
+    for i,_ in enumerate(file_list):
+      locate_flag = [True for _ in range(len(file_list))]
+      locate_flag[i] = False
+      lf_list.append(locate_flag)
+    return lf_list
+  
   global INITIAL_TEST_FRAC
   temp_dict = {}
   for file_name in file_list:
@@ -104,7 +112,6 @@ def calculate_combination(file_list):
     else:
       temp_dict[folder_name] = [file_name]
 
-  lf_list = list()
   items = [list(combinations(temp_dict[folder_name],round(len(temp_dict[folder_name]) * INITIAL_TEST_FRAC))) for folder_name in temp_dict]
   comb_items = list(product(*items))
   file_combination = [list(chain(*el)) for el in comb_items]
@@ -118,7 +125,7 @@ def calculate_combination(file_list):
 
 
 # evaluate for experiment
-def evaluation(root_path: str):
+def evaluation(root_path: str, simple_flag: bool):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
@@ -132,7 +139,7 @@ def evaluation(root_path: str):
   
   # calculate combination
   print("Calculating Evaluation combination..")
-  combination = calculate_combination(file_list)
+  combination = calculate_combination(file_list,simple_flag)
   
   # start evaluation
   print("Start evaluation..")
@@ -150,7 +157,10 @@ def evaluation(root_path: str):
     for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
       trial +=1
       if (vocab is None) and (DTM is None):
+        # print("input", input_path)
         answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
+        # print("answer", answer)
+        # print("answer comp", label[j])
       else:
         answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab)
       if (answer==label[j]):
@@ -168,12 +178,10 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='dropFile evaluation program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test')
-  """parser.add_argument('-f', help='full evaluation, compute for all combination',
-                      type=str, action='store_true')"""
+  parser.add_argument('-f', help='force simple evaluation, compute for simple combination',default=False, action='store_true')
   args = parser.parse_args()
   
   print("Running Evaluation DropFile...")
   start = time.time()
-  evaluation(args.root_path)
+  evaluation(args.root_path, args.f)
   print("elapsed time: {}sec".format(time.time()-start))
-  print("Execution Result: {}".format(recommendation_path))
