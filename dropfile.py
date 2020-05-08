@@ -31,12 +31,12 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None):
     doc_list = list()
     for file in file_list:
       doc_list.append(preprocessing.file2tok(file))
-    vocab = preprocessing.build_vocab(doc_list)
+    vocab, synonym_dict = preprocessing.build_vocab(doc_list)
     # preprocessing : build DTM of files under root_path
-    DTM = preprocessing.build_DTM(doc_list, vocab)
+    DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
     
   # preprocessing : build BoW, DTM score of input file
-  dtm_vec = preprocessing.build_DTMvec(input_file, vocab)
+  dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):

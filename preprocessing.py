@@ -12,6 +12,8 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import numpy as np
 import multiprocessing as mp
+from nltk.corpus import wordnet as wn
+from nltk.probability import FreqDist
 lm = WordNetLemmatizer()
 
 # function : lookup directory hierarchy under root_path
@@ -76,24 +78,41 @@ def file2tok(file_path: str):
 
 def build_vocab(doc_list: list):
   vocab = {}
+  synonym_dict = {}
   idx = 0
   for doc in doc_list:
       for token in doc:
+          find = False
+          for synset in wn.synsets(token):
+              synonyms = synset.lemma_names()
+              for synonym in synonyms:
+                if synonym in vocab.keys() and token != synonym:
+                  synonym_dict[synonym] = token
+                  find = True
+                  break
+              if find:
+                break
+          if find:
+            continue
           if not token in vocab.keys():
               vocab[token] = idx
               idx += 1
-  return vocab
+  return vocab, synonym_dict
 
 
 # function : build BoW
 # input : doc (list of tokens), vocab (root_path으로부터 build_vocab로 만든 vocabulary)
 # output : bow 
 #          ex) [1,2,4,,...]
-def build_BoW(doc: list, vocab: dict):
+def build_BoW(doc: list, vocab: dict, synonym_dict: dict):
+  freqdist = FreqDist(doc)
   bow = [0] * len(vocab.keys())
-  for token in doc:
+  for token in freqdist.keys():
     try:
-        bow[vocab[token]] += 1
+        if token in vocab.keys():
+          bow[vocab[token]] += freqdist[token]
+        else:
+          bow[vocab[synonym_dict[token]]] += freqdist[token]
     except KeyError:  # token이 vocabulary에 없는 경우 지금은 pass로 구현했지만 다른 구현 고려 가능
         pass          # ex : vocab에 UNK라는 token을 만들어 주고 bow[vocab['UNK']] += 1
   return bow
@@ -105,41 +124,43 @@ def build_BoW(doc: list, vocab: dict):
 #             ["I", "love", "her", ....](2nd file),[..],[..]]
 # output : list of bow, DTM
 #         ex) DTM : [[1,2,4,,...](1st file),[3,5,2,...](2nd file), ...]
-def build_DTM(doc_list: list, vocab: dict):
+def build_DTM(doc_list: list, vocab: dict, synonym_dict):
   DTM = []
   for doc in doc_list:
-    DTM.append(build_BoW(doc, vocab))
+    DTM.append(build_BoW(doc, vocab, synonym_dict))
   return DTM
 
 
 # function : make DTMvec from input_file (bow of input_file)
 # input : file_path of input_file, vocab
 # output : DTMvec (bow)
-def build_DTMvec(file_path: str, vocab: dict):
+def build_DTMvec(file_path: str, vocab: dict, synonym_dict):
   txt = file2text(file_path)
   doc = text2tok(txt)
-  bow = build_BoW(doc, vocab)
+  bow = build_BoW(doc, vocab, synonym_dict)
   return bow
 
 
 if __name__ == "__main__":
-  test_file_path = "/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-31-Graphics and Image representation.pdf" # change it for your own test file
-  file_list = ["/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-17-course introduction.pdf",
-  "/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-19-What is MM.pptx.pdf",
-  "/Users/parkchanghyeon/Desktop/dropFile/test/MM/2020-3-24-Enabing technology full.pdf"]
+  test_file_path = "C://Users//us419//Desktop//OS//04_programming_interface.pdf" # change it for your own test file
+  file_list = ["C://Users//us419//Desktop//OS//01_introduction.pdf",
+  "C://Users//us419//Desktop//OS//02_kernel.pdf",
+  "C://Users//us419//Desktop//OS//03_scheduling.pdf"]
   doc_list = list()
   for file in file_list:
     doc_list.append(file2tok(file))
-  vocab = build_vocab(doc_list)
+  vocab, synonym_dict = build_vocab(doc_list)
   print(vocab)
   
   # preprocessing : build DTM of files under root_path
-  DTM = build_DTM(doc_list, vocab)
+  DTM = build_DTM(doc_list, vocab, synonym_dict)
   DTM = np.array(DTM)
   print(DTM)
   print(DTM.shape)
   
   # preprocessing : build DTMvec from input file
-  dtm_vec = build_DTMvec(test_file_path, vocab)
+  dtm_vec = build_DTMvec(test_file_path, vocab, synonym_dict)
   print(dtm_vec)
   print(len(dtm_vec))
+
+  print(synonym_dict)
