@@ -1,11 +1,21 @@
 # evaluation code
 import argparse
 import os
+import random
+import shutil
 import preprocessing
 import dropfile
 from tqdm import tqdm
+import time # add time module
+from collections import defaultdict
+from itertools import combinations, product, chain
+import sys
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.figure as fig
 
-INITIAL_TEST_FRAC = 0.6
+INITIAL_TEST_FRAC = 0.8
 INITIAL_PATH = './test'
 
 # function : prepare environment, build new root_path and relocate each file
@@ -19,25 +29,110 @@ INITIAL_PATH = './test'
 #          label (test의 input으로 들어갈 파일들에 대한 올바른 결과값에 대한 리스트)
 #          testset (test에 사용될 파일들의 절대경로 리스트, e.g. ["/test/nlp-1.pdf",..], 원래 파일들이 있었던 경로로 지정)
 # implementation : os 라이브러리 사용
-def prepare_env(file_list, locate_flag):
+def prepare_env(comb_num: int, file_list: list, locate_flag: list):
+  current_path = os.getcwd()
+  test_path = current_path + "/eval-{}/".format(comb_num)
+
+  label = ["" for _ in range(len(file_list))]
+
+  find_common_parent_dir = []
+  if test_path not in os.listdir(current_path):
+    os.makedirs(test_path, exist_ok=True)
+
+  try:
+    # 가장 상위의 공통 디렉토리를 찾는다.
+    for file_name in file_list:
+      find_common_parent_dir.append(os.path.split(file_name)[0].split("/"))  # \n이나 /를 기준으로 자른다
+
+    compare_dir = find_common_parent_dir[0]
+    for temp_dir in find_common_parent_dir[1:]:
+      if len(compare_dir) < len(temp_dir):
+        continue
+      elif len(compare_dir) == len(temp_dir):
+        if compare_dir[-1] != temp_dir[-1]:
+          compare_dir = compare_dir[:-1]
+        else:
+          continue
+      else:
+        compare_dir = temp_dir
+
+    # 가장 상위의 공통 디렉토리
+    common_parent_dir = "/".join(compare_dir)
+
+    for idx, file_name in enumerate(file_list):
+      file_dir = os.path.split(file_name)[0]
+      # 파일이 common_parent_dir보다 하위 디렉토리에 있다면, 하위 디렉토리들을 생성한 후 copy
+      if file_dir != common_parent_dir:
+        a = file_dir.split("/")
+        b = common_parent_dir.split("/")
+        additional_path = a[len(b):]
+        temp_path = test_path[:-1]
+        
+        for i in range(len(additional_path)):
+          subdir = temp_path + "/" + additional_path[i]
+          if additional_path[i] not in os.listdir(temp_path):
+            os.makedirs(subdir,exist_ok=True)
+          temp_path = subdir
+
+        label[idx] = subdir
+        
+        if locate_flag[idx]:
+          shutil.copy2(file_name, subdir)
+      else:
+        shutil.copy2(file_name, test_path)
+        label[idx] = test_path
+
+  except PermissionError:
+    pass
+  
+  true_label = list()
   testset = list()
-  label = list()
-  test_path = None
-  return test_path, label, testset
+  for idx, flag in enumerate(locate_flag):
+    if not flag:
+      testset.append(file_list[idx])
+      true_label.append(label[idx])
+  return test_path, true_label, testset
 
 
 # function : evaluation이 이루어질 모든 경우의 location_flag 리스트를 구한다
 # input : file_list
 # output : list of locate_flag
 # implementation : output의 각 element는 위 prepare_env 함수의 locate_flag로 들어갈 수 있는 포맷이어야함
-def calculate_combination(file_list):
-  return 
+def calculate_combination(file_list, simple_flag=False):
+  lf_list = list()
+  if simple_flag:
+    for i,_ in enumerate(file_list):
+      locate_flag = [True for _ in range(len(file_list))]
+      locate_flag[i] = False
+      lf_list.append(locate_flag)
+    return lf_list
+  
+  global INITIAL_TEST_FRAC
+  temp_dict = {}
+  for file_name in file_list:
+    folder_name = os.path.split(file_name)[0]
+    if folder_name in temp_dict:
+      temp_dict[folder_name].append(file_name)
+    else:
+      temp_dict[folder_name] = [file_name]
+
+  items = [list(combinations(temp_dict[folder_name],round(len(temp_dict[folder_name]) * INITIAL_TEST_FRAC))) for folder_name in temp_dict]
+  comb_items = list(product(*items))
+  file_combination = [list(chain(*el)) for el in comb_items]
+  for chosen_files in file_combination:
+    locate_flag = [False for _ in range(len(file_list))]
+    for file in chosen_files:
+      locate_index = file_list.index(file)
+      locate_flag[locate_index] = True
+    lf_list.append(locate_flag)
+  return lf_list
 
 
 # evaluate for experiment
-def evaluation(root_path: str):
+def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
   # preprocessing : lookup hierarchy of root path
-  dir_hierarchy = preprocessing.lookup_directory(root_path)
+  directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
+  dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
   file_list = list()
   dir_list = list()
   label_num = 0
@@ -46,21 +141,70 @@ def evaluation(root_path: str):
     dir_list.append(tar_dir)
     label_num += 1
   
+  # making directory name list
+  directory_name = [ path.split('/')[-1] for path in dir_list]
+  
   # calculate combination
-  combination = calculate_combination(file_list)
+  print("Calculating Evaluation combination..")
+  combination = calculate_combination(file_list,simple_flag)
   
   # start evaluation
   print("Start evaluation..")
+  
+  if interim_flag:
+    conf_mat = [[0 for _ in range(len(dir_list))] for _ in range(len(dir_list))] # 3x3 or 4x4 confusion matrix
+  
   trial = 0
   correct = 0
-  for locate_flag in tqdm(combination,mininterval=1):
-    test_path, label, testset = prepare_env(file_list,locate_flag)
-    for i,input_path in enumerate(testset):
+  total_len = len(combination)
+  for i,locate_flag in enumerate(combination):
+    local_correct = 0
+    print("="*50)
+    print("evaluating combination set {}/{}".format(i,total_len))
+    # create test environment
+    test_path, label, testset = prepare_env(i+1,file_list,locate_flag)
+    vocab = None
+    DTM = None
+    for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
+      answer_name = ""
+      label_name = ""
       trial +=1
-      answer = dropfile.dropfile(input_path,test_path)
-      if (answer==label[i]):
+      if (vocab is None) and (DTM is None):
+        answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
+      else:
+        answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab)
+      if (answer==label[j]):
         correct += 1
+        local_correct += 1
+        if interim_flag:
+          answer_name = answer.split('/')[-1]
+          direct_idx = directory_name.index(answer_name)
+          conf_mat[direct_idx][direct_idx] += 1
+
+      else:
+        if interim_flag:
+          answer_name = answer.split('/')[-1]
+          label_name = label[j].split('/')[-1]
+          orig_idx = directory_name.index(label_name)
+          direct_idx = directory_name.index(answer_name)
+          conf_mat[orig_idx][direct_idx] += 1
+        
+    # delete test environment
+    shutil.rmtree(test_path)
+    print("iteration-{}: {}/{} correct".format(i+1,local_correct,len(testset)))
   print("Evaluation Result: {}/{}".format(correct,trial))
+
+  df_cm = pd.DataFrame(conf_mat, index = directory_name, columns = directory_name)
+  sn.set(font_scale=1.4) # for label size
+  fig, ax = plt.subplots(figsize=(8,8))
+  sn.heatmap(df_cm, annot=True, annot_kws={"size": 12}, ax=ax) # font size
+  ax.set_xlabel('expected directory')
+  ax.set_ylabel('recommended directory')
+  ax.set_title('result')
+  plt.savefig('confusion_matrix.png')
+  plt.show()
+  
+  
 
 
 # main execution command
@@ -68,12 +212,11 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='dropFile evaluation program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test')
-  parser.add_argument('-f', help='full evaluation, compute for all combination',
-                      type=str, action='store_true')
+  parser.add_argument('-f', help='force simple evaluation, compute for simple combination',default=False, action='store_true')
+  parser.add_argument('-e', help='experiment option for interim report', default=False, action='store_true')
   args = parser.parse_args()
   
   print("Running Evaluation DropFile...")
   start = time.time()
-  evaluation(args.root_path)
+  evaluation(args.root_path, args.f, args.e)
   print("elapsed time: {}sec".format(time.time()-start))
-  print("Execution Result: {}".format(recommendation_path))

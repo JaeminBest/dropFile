@@ -1,5 +1,6 @@
 # preprocessing code
 import os
+import re
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
@@ -7,24 +8,45 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.high_level import extract_text
 from io import StringIO
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, brown
 from nltk.stem import WordNetLemmatizer
+from nltk import FreqDist
+import numpy as np
+import multiprocessing as mp
+from nltk.corpus import wordnet as wn
+from nltk.probability import FreqDist
 lm = WordNetLemmatizer()
-
-import re
-
-
+fd = FreqDist([word.lower() for word in brown.words()])
+common_word_list = [t[0] for t in fd.most_common(3000)]
 
 # function : lookup directory hierarchy under root_path
-# input : root_path
+# input : root_path, empty dictionary for storage
 # output : dictionary, 
 #          key = 분류할 디렉토리의 절대경로, 
 #          value = 그(key) 디렉토리 안에 있는 file_name(절대경로)의 리스트 
 # output : dictionary that having absolute directory path as key 
 #          and list of file name inside the directory as value
 # implementation : os 라이브러리 사용하면 될듯, UNIX 환경 가정 (mac, ubuntu)
-def lookup_directory(root_path: str):
-  return dict()
+def lookup_directory(root_path: str, directory_dict: dict):
+  try:
+    root = os.listdir(root_path)
+    if root:
+      for filename in root:
+        full_filename = os.path.join(root_path, filename)
+        if os.path.isdir(full_filename):
+          lookup_directory(full_filename, directory_dict)
+        else:
+          extension = os.path.splitext(full_filename)[-1]
+          if extension == '.pdf':
+            if root_path in directory_dict:
+              directory_dict[root_path].append(full_filename)
+            else:
+              directory_dict[root_path] = [full_filename]
+    else:
+      return directory_dict # add return value
+  except PermissionError:
+    pass
+  return directory_dict # add return value
 
 
 # function : read pdf file and convert into text(string) format
@@ -48,47 +70,102 @@ def text2tok(text: str):
   # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
   words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
   words = [lm.lemmatize(word) for word in words] # lemmatize words
+  # print(common_word_list)
+  words = [word for word in words if word not in common_word_list] # exclude common words in corpus
   return words
 
 
-# function : convert token list into BoW
-# input : list of token
-#         ex) ["I", "love", "her", ...]
-# output : BoW
-#         ex) {"I": 2, "love": 1, "her": 1, ....}
-def tok2bow(token_list: str):
-  return {"sample": 1, "text": 1}
-  
-
-# function : build BoW
-def build_BoW(file_path: str):
+# root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
+def file2tok(file_path: str):
   txt = file2text(file_path)
   tok = text2tok(txt)
-  bow = tok2bow(tok)
+  return tok 
+
+def build_vocab(doc_list: list):
+  vocab = {}
+  synonym_dict = {}
+  idx = 0
+  for doc in doc_list:
+      for token in doc:
+          find = False
+          for synset in wn.synsets(token):
+              synonyms = synset.lemma_names()
+              for synonym in synonyms:
+                if synonym in vocab.keys() and token != synonym:
+                  synonym_dict[synonym] = token
+                  find = True
+                  break
+              if find:
+                break
+          if find:
+            continue
+          if not token in vocab.keys():
+              vocab[token] = idx
+              idx += 1
+  return vocab, synonym_dict
+
+
+# function : build BoW
+# input : doc (list of tokens), vocab (root_path으로부터 build_vocab로 만든 vocabulary)
+# output : bow 
+#          ex) [1,2,4,,...]
+def build_BoW(doc: list, vocab: dict, synonym_dict: dict):
+  freqdist = FreqDist(doc)
+  bow = [0] * len(vocab.keys())
+  for token in freqdist.keys():
+    try:
+        if token in vocab.keys():
+          bow[vocab[token]] += freqdist[token]
+        else:
+          bow[vocab[synonym_dict[token]]] += freqdist[token]
+    except KeyError:  # token이 vocabulary에 없는 경우 지금은 pass로 구현했지만 다른 구현 고려 가능
+        pass          # ex : vocab에 UNK라는 token을 만들어 주고 bow[vocab['UNK']] += 1
   return bow
 
 
 # function : build vocab list out of each list_of parsed token
-# input : list of BoW
-#        ex) [{"I": 2, "love": 1, "her": 1, ....}(1st file),
-#             {"I": 2, "love": 1, "her": 1, ....}(2nd file),{..},{..}]
-# output : list of total vocab list, DTM
-#         ex) vocab_list : ["I", "love", "her"]
+# input : list of doc
+#        ex) [["I", "love", "her", ....](1st file),
+#             ["I", "love", "her", ....](2nd file),[..],[..]]
+# output : list of bow, DTM
 #         ex) DTM : [[1,2,4,,...](1st file),[3,5,2,...](2nd file), ...]
-def build_DTM(bow_list):
-  vocab_list = ["sample", "text"]
-  DTM = [[1,2],[2,0]]
-  return vocab_list, DTM
+def build_DTM(doc_list: list, vocab: dict, synonym_dict):
+  DTM = []
+  for doc in doc_list:
+    DTM.append(build_BoW(doc, vocab, synonym_dict))
+  return DTM
 
 
-# function : build vocab list out of each list_of parsed token
-# input : single BoW of input_file and vacab list from files under root path
-# output : list(not ndarray) of total vocab list, DTM
-def build_DTMvec(bow, vocab_list):
-  return [1,0]
+# function : make DTMvec from input_file (bow of input_file)
+# input : file_path of input_file, vocab
+# output : DTMvec (bow)
+def build_DTMvec(file_path: str, vocab: dict, synonym_dict):
+  txt = file2text(file_path)
+  doc = text2tok(txt)
+  bow = build_BoW(doc, vocab, synonym_dict)
+  return bow
+
 
 if __name__ == "__main__":
-  test_file_path = "C://dropFile/test/nlp.pdf" # change it for your own test file
-  text = file2text(test_file_path)
-  words = text2tok(text)
-  print(words)
+  test_file_path = "C://Users//us419//Desktop//OS//04_programming_interface.pdf" # change it for your own test file
+  file_list = ["C://Users//us419//Desktop//OS//01_introduction.pdf",
+  "C://Users//us419//Desktop//OS//02_kernel.pdf",
+  "C://Users//us419//Desktop//OS//03_scheduling.pdf"]
+  doc_list = list()
+  for file in file_list:
+    doc_list.append(file2tok(file))
+  vocab, synonym_dict = build_vocab(doc_list)
+  print(vocab)
+  
+  # preprocessing : build DTM of files under root_path
+  DTM = build_DTM(doc_list, vocab, synonym_dict)
+  DTM = np.array(DTM)
+  print(DTM)
+  print(DTM.shape)
+  
+  # preprocessing : build DTMvec from input file
+  dtm_vec = build_DTMvec(test_file_path, vocab, synonym_dict)
+  print(dtm_vec)
+  print(len(dtm_vec))
+
+  print(synonym_dict)
