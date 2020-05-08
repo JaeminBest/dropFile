@@ -8,11 +8,14 @@ from pdfminer.pdfpage import PDFPage
 from pdfminer.high_level import extract_text
 from io import StringIO
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, brown
 from nltk.stem import WordNetLemmatizer
+from nltk import FreqDist
 import numpy as np
 import multiprocessing as mp
 lm = WordNetLemmatizer()
+fd = FreqDist([word.lower() for word in brown.words()])
+common_word_list = [t[0] for t in fd.most_common(3000)]
 
 # function : lookup directory hierarchy under root_path
 # input : root_path, empty dictionary for storage
@@ -65,6 +68,8 @@ def text2tok(text: str):
   # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
   words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
   words = [lm.lemmatize(word) for word in words] # lemmatize words
+  print(common_word_list)
+  words = [word for word in words if word not in common_word_list] # exclude common words in corpus
   return words
 
 
