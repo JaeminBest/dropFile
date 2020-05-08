@@ -70,7 +70,8 @@ def text2tok(text: str):
   # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
   words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
   words = [lm.lemmatize(word) for word in words] # lemmatize words
-  # words = [word for word in words if word not in common_word_list] # exclude common words in corpus
+  # print(common_word_list)
+  words = [word for word in words if word not in common_word_list] # exclude common words in corpus
   return words
 
 
