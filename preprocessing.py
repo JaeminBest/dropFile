@@ -11,11 +11,8 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 import numpy as np
+import multiprocessing as mp
 lm = WordNetLemmatizer()
-
-
-
-
 
 # function : lookup directory hierarchy under root_path
 # input : root_path, empty dictionary for storage
@@ -69,7 +66,6 @@ def text2tok(text: str):
   words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
   words = [lm.lemmatize(word) for word in words] # lemmatize words
   return words
-
 
 
 # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)

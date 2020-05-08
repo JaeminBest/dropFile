@@ -8,9 +8,10 @@ import dropfile
 from tqdm import tqdm
 import time # add time module
 from collections import defaultdict
+from itertools import combinations, product, chain
 import sys
 
-INITIAL_TEST_FRAC = 0.6
+INITIAL_TEST_FRAC = 0.8
 INITIAL_PATH = './test'
 
 # function : prepare environment, build new root_path and relocate each file
@@ -24,9 +25,9 @@ INITIAL_PATH = './test'
 #          label (test의 input으로 들어갈 파일들에 대한 올바른 결과값에 대한 리스트)
 #          testset (test에 사용될 파일들의 절대경로 리스트, e.g. ["/test/nlp-1.pdf",..], 원래 파일들이 있었던 경로로 지정)
 # implementation : os 라이브러리 사용
-def prepare_env(file_list: list, locate_flag: list):
+def prepare_env(comb_num: int, file_list: list, locate_flag: list):
   current_path = os.getcwd()
-  test_path = current_path + "/eval/"
+  test_path = current_path + "/eval-{}/".format(comb_num)
 
   label = ["" for _ in range(len(file_list))]
 
@@ -41,7 +42,6 @@ def prepare_env(file_list: list, locate_flag: list):
 
     compare_dir = find_common_parent_dir[0]
     for temp_dir in find_common_parent_dir[1:]:
-      print(compare_dir)
       if len(compare_dir) < len(temp_dir):
         continue
       elif len(compare_dir) == len(temp_dir):
@@ -80,8 +80,13 @@ def prepare_env(file_list: list, locate_flag: list):
 
   except PermissionError:
     pass
-
-  testset = file_list
+  
+  true_label = list()
+  testset = list()
+  for idx, flag in enumerate(locate_flag):
+    if not flag:
+      testset.append(file_list[idx])
+      true_label.append(label[idx])
   return test_path, label, testset
 
 
@@ -92,7 +97,6 @@ def prepare_env(file_list: list, locate_flag: list):
 def calculate_combination(file_list):
   global INITIAL_TEST_FRAC
   temp_dict = {}
-  locate_flag = [False for _ in range(len(file_list))]
   for file_name in file_list:
     folder_name = os.path.split(file_name)[0]
     if folder_name in temp_dict:
@@ -100,13 +104,17 @@ def calculate_combination(file_list):
     else:
       temp_dict[folder_name] = [file_name]
 
-  for folder_name in temp_dict:
-    chosen_files = random.sample(temp_dict[folder_name], round(len(temp_dict[folder_name]) * INITIAL_TEST_FRAC))
+  lf_list = list()
+  items = [list(combinations(temp_dict[folder_name],round(len(temp_dict[folder_name]) * INITIAL_TEST_FRAC))) for folder_name in temp_dict]
+  comb_items = list(product(*items))
+  file_combination = [list(chain(*el)) for el in comb_items]
+  for chosen_files in file_combination:
+    locate_flag = [False for _ in range(len(file_list))]
     for file in chosen_files:
       locate_index = file_list.index(file)
       locate_flag[locate_index] = True
-
-  return locate_flag
+    lf_list.append(locate_flag)
+  return lf_list
 
 
 # evaluate for experiment
@@ -123,21 +131,34 @@ def evaluation(root_path: str):
     label_num += 1
   
   # calculate combination
+  print("Calculating Evaluation combination..")
   combination = calculate_combination(file_list)
-  print('combination: ',combination)
+  
   # start evaluation
   print("Start evaluation..")
   trial = 0
   correct = 0
-
-  for locate_flag in tqdm(combination,mininterval=1):
-    test_path, label, testset = prepare_env(file_list,locate_flag) 
-
-    for i,input_path in enumerate(testset):
+  total_len = len(combination)
+  for i,locate_flag in enumerate(combination):
+    local_correct = 0
+    print("="*50)
+    print("evaluating combination set {}/{}".format(i,total_len))
+    # create test environment
+    test_path, label, testset = prepare_env(i+1,file_list,locate_flag)
+    vocab = None
+    DTM = None
+    for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
       trial +=1
-      answer = dropfile.dropfile(input_path,test_path)
-      if (answer==label[i]):
+      if (vocab is None) and (DTM is None):
+        answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
+      else:
+        answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab)
+      if (answer==label[j]):
         correct += 1
+        local_correct += 1
+    # delete test environment
+    shutil.rmtree(test_path)
+    print("iteration-{}: {}/{} correct".format(i+1,local_correct,len(testset)))
   print("Evaluation Result: {}/{}".format(correct,trial))
   
 

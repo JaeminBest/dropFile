@@ -13,11 +13,11 @@ def cosine_similarity(A,B):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def dropfile(input_file: str, root_path: str):
-  
+def dropfile(input_file: str, root_path: str, DTM=None, vocab=None):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
+
   file_list = list()
   dir_list = list()
   label_num = 0
@@ -25,24 +25,22 @@ def dropfile(input_file: str, root_path: str):
     file_list += dir_hierarchy[tar_dir]
     dir_list.append(tar_dir)
     label_num += 1
-  
+    
   # preprocessing : build vocabulary from file_list
-  doc_list = list()
-  for file in file_list:
-    doc_list.append(preprocessing.file2tok(file))
-  vocab = preprocessing.build_vocab(doc_list)
-  
-  # preprocessing : build DTM of files under root_path
-  DTM = preprocessing.build_DTM(doc_list, vocab)
-  
+  if (DTM is None) and (vocab is None):
+    doc_list = list()
+    for file in file_list:
+      doc_list.append(preprocessing.file2tok(file))
+    vocab = preprocessing.build_vocab(doc_list)
+    # preprocessing : build DTM of files under root_path
+    DTM = preprocessing.build_DTM(doc_list, vocab)
+    
   # preprocessing : build BoW, DTM score of input file
   dtm_vec = preprocessing.build_DTMvec(input_file, vocab)
-  
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
     sim_vec.append(cosine_similarity(DTM[i],dtm_vec))
-  
   # calculate label score
   # result will be score of each directory
   label_score = [0.0 for i in range(label_num)]
@@ -53,10 +51,10 @@ def dropfile(input_file: str, root_path: str):
       label_score[label] += sim_vec[offset+j]
     label_score[label] /= file_num
     offset += file_num
-
+  
   # find directory that has maximum score
   dir_path = dir_list[label_score.index(max(label_score))]
-  return dir_path
+  return dir_path, DTM, vocab
 
 
 # main execution command
