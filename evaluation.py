@@ -193,6 +193,7 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
     shutil.rmtree(test_path)
     print("iteration-{}: {}/{} correct".format(i+1,local_correct,len(testset)))
   print("Evaluation Result: {}/{}".format(correct,trial))
+  
 
   df_cm = pd.DataFrame(conf_mat, index = directory_name, columns = directory_name)
   sn.set(font_scale=1.4) # for label size
