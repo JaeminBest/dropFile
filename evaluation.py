@@ -141,6 +141,10 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
     dir_list.append(tar_dir)
     label_num += 1
   
+  if interim_flag:
+     if (len(dir_list) not in [3,4]):
+       raise Exception("you should put only 3 or 4 directories in ROOT_PATH")
+      
   # making directory name list
   directory_name = [ path.split('/')[-1] for path in dir_list]
   
