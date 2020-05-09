@@ -10,6 +10,10 @@ import time # add time module
 from collections import defaultdict
 from itertools import combinations, product, chain
 import sys
+import seaborn as sn
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.figure as fig
 
 INITIAL_TEST_FRAC = 0.8
 INITIAL_PATH = './test'
@@ -138,8 +142,11 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
     label_num += 1
   
   if interim_flag:
-    if (len(dir_list) not in [3,4]):
-      raise Exception("you should put only 3 or 4 directories in ROOT_PATH")
+     if (len(dir_list) not in [3,4]):
+       raise Exception("you should put only 3 or 4 directories in ROOT_PATH")
+      
+  # making directory name list
+  directory_name = [ path.split('/')[-1] for path in dir_list]
   
   # calculate combination
   print("Calculating Evaluation combination..")
@@ -163,6 +170,8 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
     vocab = None
     DTM = None
     for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
+      answer_name = ""
+      label_name = ""
       trial +=1
       if (vocab is None) and (DTM is None):
         answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
@@ -172,15 +181,34 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
         correct += 1
         local_correct += 1
         if interim_flag:
-          pass
+          answer_name = answer.split('/')[-1]
+          direct_idx = directory_name.index(answer_name)
+          conf_mat[direct_idx][direct_idx] += 1
+
       else:
         if interim_flag:
-          pass
+          answer_name = answer.split('/')[-1]
+          label_name = label[j].split('/')[-1]
+          orig_idx = directory_name.index(label_name)
+          direct_idx = directory_name.index(answer_name)
+          conf_mat[orig_idx][direct_idx] += 1
         
     # delete test environment
     shutil.rmtree(test_path)
     print("iteration-{}: {}/{} correct".format(i+1,local_correct,len(testset)))
   print("Evaluation Result: {}/{}".format(correct,trial))
+  
+
+  df_cm = pd.DataFrame(conf_mat, index = directory_name, columns = directory_name)
+  sn.set(font_scale=1.4) # for label size
+  fig, ax = plt.subplots(figsize=(8,8))
+  sn.heatmap(df_cm, annot=True, annot_kws={"size": 12}, ax=ax) # font size
+  ax.set_xlabel('expected directory')
+  ax.set_ylabel('recommended directory')
+  ax.set_title('result')
+  plt.savefig('confusion_matrix.png')
+  plt.show()
+  
   
 
 
