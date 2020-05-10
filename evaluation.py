@@ -169,14 +169,15 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
     test_path, label, testset = prepare_env(i+1,file_list,locate_flag)
     vocab = None
     DTM = None
+    synonym_dict = None
     for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
       answer_name = ""
       label_name = ""
       trial +=1
-      if (vocab is None) and (DTM is None):
+      if (vocab is None) and (DTM is None) and (synonym_dict is None):
         answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
       else:
-        answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab)
+        answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict)
       if (answer==label[j]):
         correct += 1
         local_correct += 1

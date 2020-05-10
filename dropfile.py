@@ -13,7 +13,7 @@ def cosine_similarity(A,B):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def dropfile(input_file: str, root_path: str, DTM=None, vocab=None):
+def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -27,19 +27,17 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None):
     label_num += 1
     
   # preprocessing : build vocabulary from file_list
-  if (DTM is None) and (vocab is None):
+  if (DTM is None) and (vocab is None) and (synonym_dict is None):
     doc_list = list()
     for file in file_list:
       doc_list.append(preprocessing.file2tok(file))
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
     # preprocessing : build DTM of files under root_path
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
-  else:
-    doc_list = list()
-    for file in file_list:
-      doc_list.append(preprocessing.file2tok(file))
-    _, synonym_dict = preprocessing.build_vocab(doc_list)
-   
+  # else:
+    # doc_list = list()
+    # for file in file_list:
+    #   doc_list.append(preprocessing.file2tok(file))
     
   # preprocessing : build BoW, DTM score of input file
   
