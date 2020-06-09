@@ -14,6 +14,7 @@ import seaborn as sn
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.figure as fig
+import naivebayes
 
 INITIAL_TEST_FRAC = 0.8
 INITIAL_PATH = './test'
@@ -129,7 +130,7 @@ def calculate_combination(file_list, simple_flag=False):
 
 
 # evaluate for experiment
-def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
+def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: bool):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
@@ -175,9 +176,12 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool):
       label_name = ""
       trial +=1
       if (vocab is None) and (DTM is None) and (synonym_dict is None):
-        answer, DTM, vocab = dropfile.dropfile(input_path,test_path)
+        # answer, DTM, vocab = dropfile.dropfile(input_path,test_path,mse=mse_flag)
+        answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
+
       else:
-        answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict)
+        # answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict, mse=mse_flag)
+        answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
       if (answer==label[j]):
         correct += 1
         local_correct += 1
@@ -220,9 +224,11 @@ if __name__=='__main__':
                       type=str, action='store', default='./test')
   parser.add_argument('-f', help='force simple evaluation, compute for simple combination',default=False, action='store_true')
   parser.add_argument('-e', help='experiment option for interim report', default=False, action='store_true')
+  parser.add_argument('-m', help='calculate similarity by MSE ', default=False, action='store_true')
+  
   args = parser.parse_args()
   
   print("Running Evaluation DropFile...")
   start = time.time()
-  evaluation(args.root_path, args.f, args.e)
+  evaluation(args.root_path, args.f, args.e, args.m)
   print("elapsed time: {}sec".format(time.time()-start))
