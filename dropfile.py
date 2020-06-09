@@ -9,11 +9,22 @@ def cosine_similarity(A,B):
   ndB = np.asarray(B)
   return np.dot(ndA,ndB)/(np.linalg.norm(ndA)*np.linalg.norm(ndB))
 
+# MSE : calculate mean squared error of two vector
+def MSE(A,B):
+  n = len(A)
+
+  arr_A = np.asarray(A)
+  arr_B = np.asarray(B)
+
+  return np.linalg.norm(arr_A-arr_B)**2/n
+
+
+
 
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None):
+def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None, mse=False):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -45,7 +56,11 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
-    sim_vec.append(cosine_similarity(DTM[i],dtm_vec))
+    if mse:
+      sim_vec.append(MSE(DTM[i], dtm_vec)) # evaluate similarity by calculating MSE 
+    else:
+      sim_vec.append(cosine_similarity(DTM[i],dtm_vec)) # evaluate similairty by cosin_similarity
+    
   # calculate label score
   # result will be score of each directory
   label_score = [0.0 for i in range(label_num)]
@@ -58,7 +73,12 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
     offset += file_num
   # print(label_score)
   # find directory that has maximum score
-  dir_path = dir_list[label_score.index(max(label_score))]
+
+  if mse:
+    dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
+  else:
+    dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
+  
   # print(dir_path)
   return dir_path, DTM, vocab
 
