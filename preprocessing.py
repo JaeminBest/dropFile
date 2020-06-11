@@ -15,6 +15,11 @@ import numpy as np
 import multiprocessing as mp
 from nltk.corpus import wordnet as wn
 from nltk.probability import FreqDist
+from nltk import pos_tag
+from nltk.tag import StanfordPOSTagger
+from nltk.tag.stanford import StanfordNERTagger
+
+
 lm = WordNetLemmatizer()
 fd = FreqDist([word.lower() for word in brown.words()])
 common_word_list = [t[0] for t in fd.most_common(3000)]
@@ -62,6 +67,26 @@ def file2text(file_path: str):
 # input : text (불용어, 문장부호, 띄어쓰기 등 포함)
 # output : list of parsed token, 의미를 가지는 토큰만 포함한 리스트
 # implementation : Regex 라이브러리로 필터링
+def text2Ntok(text: str):
+  words = word_tokenize(text) # tokenize words by nltk word_toknizer
+  words_with_pos = pos_tag(words)
+  noun = ["NN", "NNS", "NNP", "NNPS"]
+  words_with_pos = [word[0] for word in words_with_pos if word[1] in noun]
+  stops = stopwords.words('english')
+  words = [word.lower() for word in words_with_pos] # convert uppercase to lowercase
+  words = [word for word in words if word not in stops] # remove stopwords
+  # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
+  words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
+  words = [lm.lemmatize(word) for word in words] # lemmatize words
+  # print(common_word_list)
+  words = [word for word in words if word not in common_word_list] # exclude common words in corpus
+  return words
+
+
+# function : convert text into list of parsed token with POS tag
+# input : text (불용어, 문장부호, 띄어쓰기 등 포함)
+# output : list of parsed noun token, 의미를 가지는 토큰만 포함한 리스트
+# implementation : Regex 라이브러리로 필터링
 def text2tok(text: str):
   words = word_tokenize(text) # tokenize words by nltk word_toknizer
   stops = stopwords.words('english')
@@ -74,11 +99,10 @@ def text2tok(text: str):
   words = [word for word in words if word not in common_word_list] # exclude common words in corpus
   return words
 
-
 # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
 def file2tok(file_path: str):
   txt = file2text(file_path)
-  tok = text2tok(txt)
+  tok = text2Ntok(txt)
   return tok 
 
 def build_vocab(doc_list: list):
@@ -147,10 +171,10 @@ def build_DTMvec(file_path: str, vocab: dict, synonym_dict):
 
 
 if __name__ == "__main__":
-  test_file_path = "C://Users//us419//Desktop//OS//04_programming_interface.pdf" # change it for your own test file
-  file_list = ["C://Users//us419//Desktop//OS//01_introduction.pdf",
-  "C://Users//us419//Desktop//OS//02_kernel.pdf",
-  "C://Users//us419//Desktop//OS//03_scheduling.pdf"]
+  test_file_path = "C:\\Users\\kkh44\\Desktop\\test\\cs372-4+5-spring-2020.pdf" # change it for your own test file
+  file_list = ["C:\\Users\\kkh44\\Desktop\\test\\cs372-1-spring-2020.pdf",
+  "C:\\Users\\kkh44\\Desktop\\test\\cs372-2-spring-2020.pdf",
+  "C:\\Users\\kkh44\\Desktop\\test\\cs372-3-spring-2020.pdf"]
   doc_list = list()
   for file in file_list:
     doc_list.append(file2tok(file))
