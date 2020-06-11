@@ -3,6 +3,7 @@ import time
 import preprocessing
 import numpy as np
 from collections import defaultdict
+
 # cosine similarity
 def cosine_similarity(A,B):
   ndA = np.asarray(A)
@@ -19,6 +20,15 @@ def MSE(A,B):
   return np.linalg.norm(arr_A-arr_B)**2/n
 
 
+
+
+# softmax
+def softmax(a):
+  exp_a = np.exp(a)
+  sum_exp_a = np.sum(exp_a)
+  y = exp_a / sum_exp_a
+
+  return y
 
 
 # main body of program: DropFile
@@ -71,7 +81,7 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
       label_score[label] += sim_vec[offset+j]
     label_score[label] /= file_num
     offset += file_num
-  # print(label_score)
+  print("label score: ", softmax(label_score))
   # find directory that has maximum score
 
   if mse:
