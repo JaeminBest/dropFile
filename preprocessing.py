@@ -7,7 +7,7 @@ from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from pdfminer.high_level import extract_text
 from io import StringIO
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords, brown
 from nltk.stem import WordNetLemmatizer
 from nltk import FreqDist
@@ -18,11 +18,13 @@ from nltk.probability import FreqDist
 from nltk import pos_tag
 from nltk.tag import StanfordPOSTagger
 from nltk.tag.stanford import StanfordNERTagger
+import spacy
+import time
 
 
 lm = WordNetLemmatizer()
 fd = FreqDist([word.lower() for word in brown.words()])
-common_word_list = [t[0] for t in fd.most_common(3000)]
+common_word_list = [t[0] for t in fd.most_common(1000)]
 
 # function : lookup directory hierarchy under root_path
 # input : root_path, empty dictionary for storage
@@ -62,47 +64,38 @@ def file2text(file_path: str):
   text = extract_text(file_path) # extract text from pdf file
   return text
 
-
-# function : convert text into list of parsed token
-# input : text (불용어, 문장부호, 띄어쓰기 등 포함)
-# output : list of parsed token, 의미를 가지는 토큰만 포함한 리스트
-# implementation : Regex 라이브러리로 필터링
-def text2Ntok(text: str):
-  words = word_tokenize(text) # tokenize words by nltk word_toknizer
-  words_with_pos = pos_tag(words)
-  noun = ["NN", "NNS", "NNP", "NNPS"]
-  words_with_pos = [word[0] for word in words_with_pos if word[1] in noun]
+# spacy 사용한 preprocessing
+# nlp : spacy 언어모델
+def text2tokSpacy(text: str, nlp):
   stops = stopwords.words('english')
-  words = [word.lower() for word in words_with_pos] # convert uppercase to lowercase
+  texts = sent_tokenize(text)
+  words = []
+  # dep_list = ['ROOT','dobj','nsubj','nsubjpass','pobj','compound']
+  pos_list = ['VERB','NOUN','PROPN']
+  for text in texts:
+    doc = nlp(text)
+    for token in doc:
+      if ((token.dep_ == 'ROOT') or (token.head.dep_ == 'ROOT')) and token.pos_ in pos_list and token.text.isalpha() and len(token.text) > 2:
+        words.append(token.lemma_.lower())
   words = [word for word in words if word not in stops] # remove stopwords
-  # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
-  words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
-  words = [lm.lemmatize(word) for word in words] # lemmatize words
-  # print(common_word_list)
-  words = [word for word in words if word not in common_word_list] # exclude common words in corpus
+  words = [word for word in words if word not in common_word_list]
   return words
 
-
-# function : convert text into list of parsed token with POS tag
-# input : text (불용어, 문장부호, 띄어쓰기 등 포함)
-# output : list of parsed noun token, 의미를 가지는 토큰만 포함한 리스트
-# implementation : Regex 라이브러리로 필터링
-def text2tok(text: str):
-  words = word_tokenize(text) # tokenize words by nltk word_toknizer
-  stops = stopwords.words('english')
-  words = [word.lower() for word in words] # convert uppercase to lowercase
-  words = [word for word in words if word not in stops] # remove stopwords
-  # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
-  words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
-  words = [lm.lemmatize(word) for word in words] # lemmatize words
-  # print(common_word_list)
-  words = [word for word in words if word not in common_word_list] # exclude common words in corpus
-  return words
+# def build_vocab(doc_list: list):
+#   vocab = {}
+#   idx = 0
+#   for doc in doc_list:
+#       for token in doc:
+#           if not token in vocab.keys():
+#               vocab[token] = idx
+#               idx += 1
+#   print("len vocab is : ", len(vocab))
+#   return vocab, synonym_dict
 
 # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
-def file2tok(file_path: str):
+def file2tok(file_path: str, nlp):
   txt = file2text(file_path)
-  tok = text2Ntok(txt)
+  tok = text2tokSpacy(txt, nlp)
   return tok 
 
 def build_vocab(doc_list: list):
@@ -163,21 +156,23 @@ def build_DTM(doc_list: list, vocab: dict, synonym_dict):
 # function : make DTMvec from input_file (bow of input_file)
 # input : file_path of input_file, vocab
 # output : DTMvec (bow)
-def build_DTMvec(file_path: str, vocab: dict, synonym_dict):
-  txt = file2text(file_path)
-  doc = text2tok(txt)
+def build_DTMvec(file_path: str, vocab: dict, synonym_dict, nlp):
+  doc = file2tok(file_path, nlp)
   bow = build_BoW(doc, vocab, synonym_dict)
   return bow
 
 
 if __name__ == "__main__":
-  test_file_path = "C:\\Users\\kkh44\\Desktop\\test\\cs372-4+5-spring-2020.pdf" # change it for your own test file
-  file_list = ["C:\\Users\\kkh44\\Desktop\\test\\cs372-1-spring-2020.pdf",
-  "C:\\Users\\kkh44\\Desktop\\test\\cs372-2-spring-2020.pdf",
-  "C:\\Users\\kkh44\\Desktop\\test\\cs372-3-spring-2020.pdf"]
+  test_file_path = "C\\Users\\us419\\Desktop\\NLP\\dropFile\\test\\sp\\01-overview.pdf" # change it for your own test file
+  file_list = ["C:\\Users\\us419\\Desktop\\NLP\\dropFile\\test\\sp\\02-bits-ints.pdf",
+  "\\Users\\us419\\Desktop\\NLP\\dropFile\\test\\sp\\03-float.pdf"]
   doc_list = list()
+
+  start = time.time()
+  nlp = spacy.load("en_core_web_sm")
+  print("nlp load time: {}sec".format(time.time()-start))
   for file in file_list:
-    doc_list.append(file2tok(file))
+    doc_list.append(file2tok(file, nlp))
   vocab, synonym_dict = build_vocab(doc_list)
   print(vocab)
   
