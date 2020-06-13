@@ -34,7 +34,7 @@ def softmax(a):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None, mse=False):
+def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None, mse=False, nlp=None):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -51,7 +51,7 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
   if (DTM is None) and (vocab is None) and (synonym_dict is None):
     doc_list = list()
     for file in file_list:
-      doc_list.append(preprocessing.file2tok(file))
+      doc_list.append(preprocessing.file2tok(file, nlp))
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
     # preprocessing : build DTM of files under root_path
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
@@ -62,7 +62,7 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
     
   # preprocessing : build BoW, DTM score of input file
   
-  dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+  dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict, nlp)
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
@@ -90,7 +90,7 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
     dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
   
   # print(dir_path)
-  return dir_path, DTM, vocab
+  return dir_path, DTM, vocab, synonym_dict
 
 
 # main execution command

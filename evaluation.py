@@ -15,6 +15,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.figure as fig
 import naivebayes
+import spacy
 
 INITIAL_TEST_FRAC = 0.8
 INITIAL_PATH = './test'
@@ -131,6 +132,8 @@ def calculate_combination(file_list, simple_flag=False):
 
 # evaluate for experiment
 def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: bool):
+  # load the spacy language model
+  nlp = spacy.load("en_core_web_lg")
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
@@ -163,6 +166,7 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: 
   correct = 0
   total_len = len(combination)
   for i,locate_flag in enumerate(combination):
+    print("locate_flag is : ", locate_flag)
     local_correct = 0
     print("="*50)
     print("evaluating combination set {}/{}".format(i,total_len))
@@ -172,16 +176,17 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: 
     DTM = None
     synonym_dict = None
     for j,input_path in enumerate(tqdm(testset,desc="evaluation",mininterval=1)):
+      print("input_path is : ", input_path)
       answer_name = ""
       label_name = ""
       trial +=1
       if (vocab is None) and (DTM is None) and (synonym_dict is None):
-        # answer, DTM, vocab = dropfile.dropfile(input_path,test_path,mse=mse_flag)
-        answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
+        answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,mse=mse_flag, nlp=nlp)
+        # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
 
       else:
-        # answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict, mse=mse_flag)
-        answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
+        answer,_,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict, mse=mse_flag, nlp=nlp)
+        # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
       if (answer==label[j]):
         correct += 1
         local_correct += 1
