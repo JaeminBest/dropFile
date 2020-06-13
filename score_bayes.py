@@ -4,6 +4,13 @@ import preprocessing
 import numpy as np
 from collections import defaultdict
 
+def softmax(a):
+  exp_a = np.exp(a)
+  sum_exp_a = np.sum(exp_a)
+  y = exp_a / sum_exp_a
+
+  return y
+
 # ===============================================================================================
 # NaiveBayes class 
 # I asssume that priors are same for all directories. So I only considered likelihood of words. 
@@ -45,13 +52,13 @@ class NaiveBayes():
             print("posterior {}-th : {} ".format(i,prob[i]))
 
         index = prob.index(max(prob))
-        return index
+        return index, prob
 
 
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def dropfile_bayes(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None):
+def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
     dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -96,10 +103,10 @@ def dropfile_bayes(input_file: str, root_path: str, DTM=None, vocab=None, synony
     naivebayes.get_likelihood_with_smoothing(label_DTM)
 
     # predict the directory 
-    index = naivebayes.predict(dtm_vec)
+    index, prob = naivebayes.predict(dtm_vec)
     dir_path = dir_list[index]
 
-    return dir_path, DTM, vocab
+    return dir_list, prob, DTM, vocab
 
 
 # main execution command

@@ -3,7 +3,7 @@ import argparse
 import os
 import random
 import shutil
-import preprocessing
+from preprocessing import Preprocessing
 import dropfile
 from tqdm import tqdm
 import time # add time module
@@ -14,7 +14,8 @@ import seaborn as sn
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.figure as fig
-import naivebayes
+preprocessing = Preprocessing()
+# import naivebayes
 import spacy
 
 INITIAL_TEST_FRAC = 0.8
@@ -181,11 +182,11 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: 
       label_name = ""
       trial +=1
       if (vocab is None) and (DTM is None) and (synonym_dict is None):
-        answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,mse=mse_flag, nlp=nlp)
+        answer, DTM, vocab = dropfile.dropfile(input_path,test_path,mse=mse_flag)
         # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
 
       else:
-        answer,_,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict, mse=mse_flag, nlp=nlp)
+        answer,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict, mse=mse_flag)
         # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
       if (answer==label[j]):
         correct += 1
