@@ -6,6 +6,7 @@
 ```bash
 $ mkdir test (그 후 여기에 테스트해볼 파일들을 저장해야함)
 $ pip install -r requirement.txt
+$ python -m spacy download en
 $ python3 dropfile.py -r (root_path: default ./test) -i file_path
 $ python3 evaluation.py -r (root_path: defulat ./test) -f (full evaluation)
 ```

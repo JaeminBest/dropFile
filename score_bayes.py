@@ -1,6 +1,5 @@
 import argparse
 import time
-import preprocessing
 import numpy as np
 from collections import defaultdict
 
@@ -106,7 +105,7 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
     index, prob = naivebayes.predict(dtm_vec)
     dir_path = dir_list[index]
 
-    return dir_list, prob, DTM, vocab
+    return dir_list, prob, DTM, vocab, synonym_dict
 
 
 # main execution command

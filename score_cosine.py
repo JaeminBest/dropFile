@@ -1,6 +1,5 @@
 import argparse
 import time
-from preprocessing import Preprocessing
 import numpy as np
 from collections import defaultdict
 import os
@@ -11,7 +10,6 @@ def cosine_similarity(A,B):
   ndB = np.asarray(B)
   return np.dot(ndA,ndB)/(np.linalg.norm(ndA)*np.linalg.norm(ndB))
 
-preprocessing = Preprocessing()
 # MSE : calculate mean squared error of two vector
 def MSE(A,B):
   n = len(A)
@@ -92,7 +90,7 @@ def score_cosine(input_file: str, root_path: str, preprocessing, DTM=None, vocab
     dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
 
   # print(dir_path)
-  return dir_list, label_score, DTM, vocab
+  return dir_list, label_score, DTM, vocab, synonym_dict
 
 
 # main execution command

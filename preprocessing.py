@@ -17,6 +17,7 @@ from nltk.corpus import wordnet as wn
 from nltk.probability import FreqDist
 import spacy
 
+print("Loading spacy!")
 nlp = spacy.load('en_core_web_sm')
 from nltk import pos_tag
 from nltk.tag import StanfordPOSTagger
@@ -194,7 +195,7 @@ class NounPreprocessing(Preprocessing):
   # input : text (불용어, 문장부호, 띄어쓰기 등 포함)
   # output : list of parsed token, 의미를 가지는 토큰만 포함한 리스트
   # implementation : Regex 라이브러리로 필터링
-  def text2tok(text: str):
+  def text2tok(self, text: str):
     words = word_tokenize(text) # tokenize words by nltk word_toknizer
     words_with_pos = pos_tag(words)
     noun = ["NN", "NNS", "NNP", "NNPS"]
