@@ -16,8 +16,20 @@ $ python3 evaluation.py -r (root_path: defulat ./test) -f (full evaluation)
 
 ### 프로그램 구조
 - dropfile.py : 단일 파일 디렉토리 경로 추천
+    - function dropfile() : 경로 추천
+    - function prepare_env() : 사전 계산 후, DTM, vocab, synonym_dict 반환
 - evaluation.py : 정확도 측정을 위한 평가 코드
-- preprocessing.py : 각 파일의 특성을 추출하는 전처리 코드
+- preprocessing
+    - preprocessing.py : 각 파일의 특성을 추출하는 전처리 코드
+        - class Preprocessing : 원래 버전
+        - class DependencyParserPreprocessing : head of dependency structure만 가져오는 버전
+        - class NounPhrasePreprocessing : head of noun phrase만 가져오는 버전
+        - class NounPreprocessing : 건호님 버전
+        - class SpacyPreprocessing : 윤석님 버전
+- score
+    - score_cosine.py : cosine similarity로 예측 (원래 버전)
+    - score_mse.py : mse로 예측
+    - score_bayes.py : naive bayes로 예측
 - tests : 테스트용 파일 (root_path로 설정되어 있음)  
 &nbsp;  
    

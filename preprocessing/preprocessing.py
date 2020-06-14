@@ -1,18 +1,11 @@
 # preprocessing code
 import os
 import re
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfpage import PDFPage
 from pdfminer.high_level import extract_text
-from io import StringIO
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords, brown
 from nltk.stem import WordNetLemmatizer
-from nltk import FreqDist
 import numpy as np
-import multiprocessing as mp
 from nltk.corpus import wordnet as wn
 from nltk.probability import FreqDist
 import spacy
@@ -20,10 +13,6 @@ import spacy
 print("Loading spacy!")
 nlp = spacy.load('en_core_web_sm')
 from nltk import pos_tag
-from nltk.tag import StanfordPOSTagger
-from nltk.tag.stanford import StanfordNERTagger
-import spacy
-import time
 
 
 lm = WordNetLemmatizer()
@@ -86,18 +75,6 @@ class Preprocessing():
     words = [lm.lemmatize(word) for word in words] # lemmatize words
     words = [word for word in words if word not in common_word_list] # exclude common words in corpus
     return words
-
-# def build_vocab(doc_list: list):
-#   vocab = {}
-#   idx = 0
-#   for doc in doc_list:
-#       for token in doc:
-#           if not token in vocab.keys():
-#               vocab[token] = idx
-#               idx += 1
-#   print("len vocab is : ", len(vocab))
-#   return vocab, synonym_dict
-
 
   # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
   def file2tok(self, file_path: str):

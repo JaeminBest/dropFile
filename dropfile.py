@@ -1,10 +1,10 @@
 import argparse
 import time
-from .preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
-from .preprocessing import NounPreprocessing, SpacyPreprocessing
-from .score_bayes import score_bayes
-from .score_cosine import score_cosine
-from .score_mse import score_mse
+from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
+from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing
+from .score.score_bayes import score_bayes
+from .score.score_cosine import score_cosine
+from .score.score_mse import score_mse
 
 import numpy as np
 from collections import defaultdict
