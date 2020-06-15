@@ -58,7 +58,11 @@ class NaiveBayes():
             if self.verbose:
                 print("posterior {}-th : {} ".format(i,prob[i]))
 
-        index = prob.index(max(prob))
+        if prob != []:
+            index = prob.index(max(prob))
+        else:
+            index = 0
+
         return index, prob
 
 
@@ -111,7 +115,8 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
 
     # predict the directory 
     index, prob = naivebayes.predict(dtm_vec)
-    dir_path = dir_list[index]
+    if index < len(dir_list):
+        dir_path = dir_list[index]
 
     return dir_list, prob, DTM, vocab, synonym_dict
 

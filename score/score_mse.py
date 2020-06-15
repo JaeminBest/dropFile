@@ -91,10 +91,11 @@ def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
     print("label score: ", softmax(label_score))
   # find directory that has maximum score
 
-  if mse:
-    dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
-  else:
-    dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
+  if label_score != []:
+    if mse:
+      dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
+    else:
+      dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
 
   # print(dir_path)
   return dir_list, label_score, DTM, vocab, synonym_dict
