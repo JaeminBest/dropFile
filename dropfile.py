@@ -45,8 +45,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
 
   for i, method in enumerate(ensembles):
     preprocessing_name = method["preprocessing"]
-    if (cached_DTM[preprocessing_name] is not None) and (cached_vocab[preprocessing_name] is not None) \
-            and (cached_synonym_dict[preprocessing_name] is not None):
+    if preprocessing_name in cached_DTM and preprocessing_name in cached_vocab \
+            and preprocessing_name in cached_synonym_dict:
       dir_list, label_score, DTM, vocab, synonym_dict = \
         method['scoring'](input_file, root_path, preprocessing_dict[preprocessing_name],
                           cached_DTM[preprocessing_name], cached_vocab[preprocessing_name],
@@ -131,7 +131,7 @@ if __name__=='__main__':
   
   print("Running DropFile...")
   start = time.time()
-  D,V,S = prepare_env('', args.root_path)
-  recommendation_path = dropfile(args.input_file, args.root_path, D, V, S)
+  # D,V,S = prepare_env('', args.root_path)
+  recommendation_path = dropfile(args.input_file, args.root_path)
   print("elapsed time: {}sec".format(time.time()-start))
   print("Execution Result: {}".format(recommendation_path))
