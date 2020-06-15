@@ -237,6 +237,7 @@ class TargetWordChunkingPreprocessing(Preprocessing):
 
     words = [word.lower() for word in chunk_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]
+
     return words
 
 
