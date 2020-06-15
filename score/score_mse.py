@@ -35,6 +35,11 @@ def softmax(a):
 # input : input file path, root path 
 # output : recommended path
 def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=True):
+  if 'DROPFILE_LOGLEVEL' in os.environ:
+    verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+  else:
+    verbose = 0
+
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -81,7 +86,9 @@ def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
       label_score[label] += sim_vec[offset+j]
     label_score[label] /= file_num
     offset += file_num
-  print("label score: ", softmax(label_score))
+
+  if verbose:
+    print("label score: ", softmax(label_score))
   # find directory that has maximum score
 
   if mse:

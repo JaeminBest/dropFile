@@ -2,6 +2,7 @@ import argparse
 import time
 import numpy as np
 from collections import defaultdict
+import os
 
 def softmax(a):
   exp_a = np.exp(a)
@@ -17,6 +18,11 @@ def softmax(a):
 
 class NaiveBayes():
     def __init__(self, num_vocab, num_classes):
+        if 'DROPFILE_LOGLEVEL' in os.environ:
+            self.verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+        else:
+            self.verbose = 0
+
         self.num_vocab = num_vocab
         self.num_classes = num_classes
 
@@ -48,7 +54,9 @@ class NaiveBayes():
 
         for i in range(len(prob)):
             prob[i] = np.sum(bow * self.log_likelihood[i])
-            print("posterior {}-th : {} ".format(i,prob[i]))
+
+            if self.verbose:
+                print("posterior {}-th : {} ".format(i,prob[i]))
 
         index = prob.index(max(prob))
         return index, prob

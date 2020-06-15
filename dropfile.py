@@ -1,7 +1,7 @@
 import argparse
 import time
 from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
-from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing
+from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
 from .score.score_bayes import score_bayes
 from .score.score_cosine import score_cosine
 from .score.score_mse import score_mse
@@ -13,17 +13,21 @@ import os
 # main body of program: DropFile
 # input : input file path, root path
 # output : recommended path
-def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None):
+def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None, verbose=False):
+  os.environ['DROPFILE_LOGLEVEL'] = "1" if verbose else "0"
+
   normalpreprocessing = Preprocessing()
   dspreprocessing = DependencyStructurePreprocessing()
   nppreprocessing = NounPhrasePreprocessing()
   npreprocessing = NounPreprocessing()
   spacypreprocessing = SpacyPreprocessing()
+  twcpreprocessing = TargetWordChunkingPreprocessing()
   preprocessing_dict = {"Preprocessing": normalpreprocessing,
                         "DependencyStructurePreprocessing": dspreprocessing,
                         "NounPhrasePreprocessing": nppreprocessing,
                         "NounPreprocessing": npreprocessing,
-                        "SpacyPreprocessing": spacypreprocessing}
+                        "SpacyPreprocessing": spacypreprocessing,
+                        "TargetWordChunkingPreprocessing": twcpreprocessing}
 
   ensembles = [
                {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},
@@ -61,7 +65,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     label_scores.append(label_score)
 
   score_arr = np.array(label_scores)
-  print(score_arr)
+  if verbose:
+      print(score_arr)
   final_label_score = np.array([0.0] * score_arr.shape[1])
   for i in range(score_arr.shape[0]):
     final_label_score += score_arr[i]*ensembles[i]["weight"]
@@ -71,18 +76,21 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   # print(dir_path)
   return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
-def prepare_env(root_path: str):
+def prepare_env(root_path: str, verbose=False):
+  os.environ['DROPFILE_LOGLEVEL'] = "1" if verbose else "0"
 
   normalpreprocessing = Preprocessing()
   dspreprocessing = DependencyStructurePreprocessing()
   nppreprocessing = NounPhrasePreprocessing()
   npreprocessing = NounPreprocessing()
   spacypreprocessing = SpacyPreprocessing()
+  twcpreprocessing = TargetWordChunkingPreprocessing()
   preprocessing_dict = {"Preprocessing": normalpreprocessing,
                         "DependencyStructurePreprocessing": dspreprocessing,
                         "NounPhrasePreprocessing": nppreprocessing,
                         "NounPreprocessing": npreprocessing,
-                        "SpacyPreprocessing": spacypreprocessing}
+                        "SpacyPreprocessing": spacypreprocessing,
+                        "TargetWordChunkingPreprocessing": twcpreprocessing}
 
   DTM_dict = dict()
   vocab_dict = dict()
@@ -91,7 +99,11 @@ def prepare_env(root_path: str):
   for name, preprocessing in preprocessing_dict.items():
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list)  # empty dictionary for lookup_directory function
+
+    start = time.time()
     dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)  # change it to have 2 parameter
+    if verbose:
+        print(f"{name}.lookup_directory takes {time.time()-start:.4f} s.")
 
     file_list = list()
     dir_list = list()
@@ -104,11 +116,22 @@ def prepare_env(root_path: str):
     # preprocessing : build vocabulary from file_list
     # if (DTM is None) and (vocab is None) and (synonym_dict is None):
     doc_list = list()
+    start = time.time()
     for file in file_list:
       doc_list.append(preprocessing.file2tok(file))
+    if verbose:
+        print(f"{name}.file2tok takes {time.time()-start:.4f} s.")
+
+    start = time.time()
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
+    if verbose:
+        print(f"{name}.build_vocab takes {time.time()-start:.4f} s.")
+
     # preprocessing : build DTM of files under root_path
+    start = time.time()
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
+    if verbose:
+        print(f"{name}.build_DTM takes {time.time()-start:.4f} s.")
 
     DTM_dict[name] = DTM
     vocab_dict[name] = vocab
@@ -124,6 +147,7 @@ if __name__=='__main__':
                       type=str, action='store', default=os.path.join('.', 'test'))
   parser.add_argument('-i', '--input-file', help='input file initial path',
                       type=str, action='store')
+
   args = parser.parse_args()
   print('root path : {}, input file: {}'.format(args.root_path, args.input_file))
   if (args.input_file is None):
@@ -131,7 +155,7 @@ if __name__=='__main__':
   
   print("Running DropFile...")
   start = time.time()
-  # D,V,S = prepare_env('', args.root_path)
+  D,V,S = prepare_env(args.root_path, True)
   recommendation_path = dropfile(args.input_file, args.root_path)
   print("elapsed time: {}sec".format(time.time()-start))
   print("Execution Result: {}".format(recommendation_path))
