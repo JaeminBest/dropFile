@@ -3,21 +3,22 @@ import os
 import re
 from pdfminer.high_level import extract_text
 from nltk.tokenize import word_tokenize, sent_tokenize
-from nltk.corpus import stopwords, brown
+from nltk.corpus import stopwords
+from nltk import pos_tag
 from nltk.stem import WordNetLemmatizer
 import numpy as np
 from nltk.corpus import wordnet as wn
 from nltk.probability import FreqDist
+from nltk import CFG
+from nltk import RecursiveDescentParser
 import spacy
 
 print("Loading spacy!")
-nlp = spacy.load('en_core_web_sm')
-from nltk import pos_tag
+nlp = spacy.load('en_core_web_lg')
+
 
 
 lm = WordNetLemmatizer()
-fd = FreqDist([word.lower() for word in brown.words()])
-common_word_list = [t[0] for t in fd.most_common(3000)]
 
 class Preprocessing():
   def __init__(self):
@@ -58,7 +59,9 @@ class Preprocessing():
   # output : text
   # implementation : pdfminer 라이브러리 사용 (ref: https://lsjsj92.tistory.com/304)
   def file2text(self, file_path: str):
-    text = extract_text(file_path) # extract text from pdf file
+    with open(file_path, 'rb') as f:
+      text = pickle.load(f) # 이제 모든 강의파일은 pickle로 저장되있음 (not pdf)
+    # text = extract_text(file_path) # extract text from pdf file
     return text
 
   # function : convert text into list of parsed token
@@ -67,13 +70,9 @@ class Preprocessing():
   # implementation : Regex 라이브러리로 필터링
   def text2tok(self, text: str):
     words = word_tokenize(text) # tokenize words by nltk word_toknizer
-    stops = stopwords.words('english')
     words = [word.lower() for word in words] # convert uppercase to lowercase
-    words = [word for word in words if word not in stops] # remove stopwords
-    # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
     words = [lm.lemmatize(word) for word in words] # lemmatize words
-    words = [word for word in words if word not in common_word_list] # exclude common words in corpus
     return words
 
   # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
@@ -155,7 +154,6 @@ class DependencyStructurePreprocessing(Preprocessing):
         head_list.append(token.lemma_)
     words = [word.lower() for word in head_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]  # regex version of above line
-    words = [word for word in words if word not in common_word_list]  # exclude common words in corpus
     return words
 
 class NounPhrasePreprocessing(Preprocessing):
@@ -164,7 +162,6 @@ class NounPhrasePreprocessing(Preprocessing):
     head_list = [chunk.root.lemma_ for chunk in doc.noun_chunks]
     words = [word.lower() for word in head_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]  # regex version of above line
-    words = [word for word in words if word not in common_word_list]  # exclude common words in corpus
     return words
 
 class NounPreprocessing(Preprocessing):
@@ -177,14 +174,10 @@ class NounPreprocessing(Preprocessing):
     words_with_pos = pos_tag(words)
     noun = ["NN", "NNS", "NNP", "NNPS"]
     words_with_pos = [word[0] for word in words_with_pos if word[1] in noun]
-    stops = stopwords.words('english')
     words = [word.lower() for word in words_with_pos] # convert uppercase to lowercase
-    words = [word for word in words if word not in stops] # remove stopwords
-    # words = [word for word in words if word.isalnum() and (not word.isnumeric())] # filter non-alphanumeric words
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
     words = [lm.lemmatize(word) for word in words] # lemmatize words
     # print(common_word_list)
-    words = [word for word in words if word not in common_word_list] # exclude common words in corpus
     return words
 
 class SpacyPreprocessing(Preprocessing):
@@ -203,7 +196,6 @@ class SpacyPreprocessing(Preprocessing):
                 token.head.dep_ == 'ROOT')) and token.pos_ in pos_list and token.text.isalpha() and len(token.text) > 2:
           words.append(token.lemma_.lower())
     words = [word for word in words if word not in stops]  # remove stopwords
-    words = [word for word in words if word not in common_word_list]
     return words
 
   # function : make DTMvec from input_file (bow of input_file)
@@ -213,6 +205,42 @@ class SpacyPreprocessing(Preprocessing):
     doc = self.file2tok(file_path)
     bow = self.build_BoW(doc, vocab, synonym_dict)
     return bow
+
+class TargetWordChunkingPreprocessing(Preprocessing):
+  # spacy 사용한 preprocessing
+  # nlp : spacy 언어모델
+  # target word : 강의의 요점이나 핵심이 담길 만한 단어
+  # method : target word가 등장한 문장, 그 다음 두 문장까지 문장에서 Noun phrase를 추출하여 DTM 구성
+  def text2tok(self, text: str):
+    target_word = ["purpose", "object", "goal", "objective", "aim", "learn", "study", "overview"]
+    grammar = CFG.fromstring("""
+    S -> NP VP
+    VP -> V NP | V NP PP
+    PP -> P NP
+    V -> learn | study
+    Det -> "a" | "an" | "the" | "our"
+    N -> "goal" | "purpose" | "object" | "overview"
+    P -> "in" | "on" | "at" | "by" | "with" | "about"
+    """)
+    rd_parser = RecursiveDescentParser(grammar)
+    chunk_list = []
+    doc = nlp(text)
+    flag = 0
+    for sent in doc.sents:
+      if flag > 0:
+        for chunk in sent.noun_chunks:
+          chunk_list.append(chunk.lemma_)
+          flag -= 1
+      for token in sent:
+        if token.lemma_ in target_word:
+          flag = 2
+          for chunk in sent.noun_chunks:
+            chunk_list.append(chunk.lemma_)
+
+    words = [word.lower() for word in chunk_list]
+    words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]
+    return words
+
 
 if __name__ == "__main__":
   preprocessing = NounPhrasePreprocessing()

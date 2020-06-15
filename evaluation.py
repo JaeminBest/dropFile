@@ -1,9 +1,10 @@
 # evaluation code
 import argparse
 import os
+import os.path
 import random
 import shutil
-from .preprocessing import Preprocessing
+from preprocessing.preprocessing import Preprocessing
 import dropfile
 from tqdm import tqdm
 import time # add time module
@@ -17,6 +18,7 @@ import matplotlib.figure as fig
 preprocessing = Preprocessing()
 # import naivebayes
 import spacy
+import pickle
 
 INITIAL_TEST_FRAC = 0.8
 INITIAL_PATH = './test'
@@ -101,41 +103,29 @@ def prepare_env(comb_num: int, file_list: list, locate_flag: list):
 # input : file_list
 # output : list of locate_flag
 # implementation : output의 각 element는 위 prepare_env 함수의 locate_flag로 들어갈 수 있는 포맷이어야함
-def calculate_combination(file_list, simple_flag=False):
+def calculate_combination(file_list):
   lf_list = list()
-  if simple_flag:
-    for i,_ in enumerate(file_list):
-      locate_flag = [True for _ in range(len(file_list))]
-      locate_flag[i] = False
-      lf_list.append(locate_flag)
-    return lf_list
-  
-  global INITIAL_TEST_FRAC
-  temp_dict = {}
-  for file_name in file_list:
-    folder_name = os.path.split(file_name)[0]
-    if folder_name in temp_dict:
-      temp_dict[folder_name].append(file_name)
-    else:
-      temp_dict[folder_name] = [file_name]
-
-  items = [list(combinations(temp_dict[folder_name],round(len(temp_dict[folder_name]) * INITIAL_TEST_FRAC))) for folder_name in temp_dict]
-  comb_items = list(product(*items))
-  file_combination = [list(chain(*el)) for el in comb_items]
-  for chosen_files in file_combination:
-    locate_flag = [False for _ in range(len(file_list))]
-    for file in chosen_files:
-      locate_index = file_list.index(file)
-      locate_flag[locate_index] = True
-    lf_list.append(locate_flag)
+  lf_list.append([False, True, False])
+  lf_list.append([False, False, True])
+  # length = len(file_list)
+  # l1 = int(length/4)
+  # l2 = l1*2
+  # l3 = l1*3
+  # lf_list.append([True]*l3 + [False]*l1)
+  # lf_list.append([True]*l2 + [False]*l1 + [True]*l1)
+  # lf_list.append([True]*l1+[False]*l1+[True]*l2)
+  # lf_list.append([False]*l1+ [True]*l3)
   return lf_list
 
 
 # evaluate for experiment
-def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: bool):
+def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim_flag: bool):
   # load the spacy language model
-  nlp = spacy.load("en_core_web_lg")
+  # nlp = spacy.load("en_core_web_lg")
   # preprocessing : lookup hierarchy of root path
+  pickle_path = root_path + "-pickle"
+  if pickle_path not in os.listdir('.'):
+    os.makedirs(pickle_path, exist_ok=True)
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict)
   file_list = list()
@@ -155,8 +145,8 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: 
   
   # calculate combination
   print("Calculating Evaluation combination..")
-  combination = calculate_combination(file_list,simple_flag)
-  
+  combination = calculate_combination(file_list)
+
   # start evaluation
   print("Start evaluation..")
   
@@ -181,28 +171,52 @@ def evaluation(root_path: str, simple_flag: bool, interim_flag: bool, mse_flag: 
       answer_name = ""
       label_name = ""
       trial +=1
-      if (vocab is None) and (DTM is None) and (synonym_dict is None):
-        answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,mse=mse_flag, nlp=nlp)
-        # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
+      # case3 (case1을 가져와서 새로운 file 넣기(score가 일정해야함))
+      if root_path == './test/case3':
+        with open('./test/case1/DTM-{}'.format(j), 'rb') as f:
+          DTM = pickle.load(f)
+        with open('./test/case1/vocab-{}'.format(j), 'rb') as f:
+          vocab = pickle.load(f)
+        with open('./test/case1/synonym_dict-{}'.format(j), 'rb') as f:
+          synonym_dict = pickle.load(f)
 
+      elif os.path.isfile(pickle_path+'DTM-{}'.format(j)):
+        with open(pickle_path + '/DTM-{}'.format(j), 'rb') as f:
+          DTM = pickle.load(f)
+        with open(pickle_path + '/vocab-{}'.format(j), 'rb') as f:
+          vocab = pickle.load(f)
+        with open(pickle_path + '/synonym_dict-{}'.format(j), 'rb') as f:
+          synonym_dict = pickle.load(f)
       else:
-        answer,_,_,_ = dropfile.dropfile(input_path,test_path, DTM, vocab, synonym_dict, mse=mse_flag, nlp=nlp)
-        # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
-      if (answer==label[j]):
-        correct += 1
-        local_correct += 1
-        if interim_flag:
-          answer_name = answer.split('/')[-1]
-          direct_idx = directory_name.index(answer_name)
-          conf_mat[direct_idx][direct_idx] += 1
+        if (vocab is None) and (DTM is None) and (synonym_dict is None):
+          answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path)
+          with open(pickle_path + '/DTM-{}'.format(j), 'wb') as f:
+            pickle.dump(DTM, f)
+          with open(pickle_path + '/vocab-{}'.format(j), 'wb') as f:
+            pickle.dump(vocab, f)
+          with open(pickle_path + '/synonym_dict-{}'.format(j), 'wb') as f:
+            pickle.dump(synonym_dict, f)
+          # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
 
-      else:
-        if interim_flag:
-          answer_name = answer.split('/')[-1]
-          label_name = label[j].split('/')[-1]
-          orig_idx = directory_name.index(label_name)
-          direct_idx = directory_name.index(answer_name)
-          conf_mat[orig_idx][direct_idx] += 1
+        else:
+          answer,_,_,_ = dropfile.dropfile(input_path,test_path)
+          # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
+
+        if (answer==label[j]):
+          correct += 1
+          local_correct += 1
+          if interim_flag:
+            answer_name = answer.split('/')[-1]
+            direct_idx = directory_name.index(answer_name)
+            conf_mat[direct_idx][direct_idx] += 1
+
+        else:
+          if interim_flag:
+            answer_name = answer.split('/')[-1]
+            label_name = label[j].split('/')[-1]
+            orig_idx = directory_name.index(label_name)
+            direct_idx = directory_name.index(answer_name)
+            conf_mat[orig_idx][direct_idx] += 1
         
     # delete test environment
     shutil.rmtree(test_path)
@@ -228,13 +242,12 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='dropFile evaluation program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test')
-  parser.add_argument('-f', help='force simple evaluation, compute for simple combination',default=False, action='store_true')
-  parser.add_argument('-e', help='experiment option for interim report', default=False, action='store_true')
-  parser.add_argument('-m', help='calculate similarity by MSE ', default=False, action='store_true')
-  
+  parser.add_argument('-e', help='experiment option for interim report', default=True, action='store_true')
+  parser.add_argument('-a', help='name of preprocessing ', default="Preprocessing", action='store_true')
+  parser.add_argument('-b', help='name of score ', default="score_cosine", action='store_true')
   args = parser.parse_args()
-  
+
   print("Running Evaluation DropFile...")
   start = time.time()
-  evaluation(args.root_path, args.f, args.e, args.m)
+  evaluation(args.root_path, args.a, args.b, args.e)
   print("elapsed time: {}sec".format(time.time()-start))

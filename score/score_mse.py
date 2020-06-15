@@ -34,7 +34,7 @@ def softmax(a):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=True):
+def score_mse(input_file, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=True):
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -62,14 +62,16 @@ def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
     
   # preprocessing : build BoW, DTM score of input file
   
-  dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+  # dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+  dtm_vec = input_file
+
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
     if mse:
-      sim_vec.append(MSE(DTM[i], dtm_vec)) # evaluate similarity by calculating MSE
+      sim_vec.append(MSE(DTM[i][0], dtm_vec)) # evaluate similarity by calculating MSE
     else:
-      sim_vec.append(cosine_similarity(DTM[i],dtm_vec)) # evaluate similairty by cosin_similarity
+      sim_vec.append(cosine_similarity(DTM[i][0],dtm_vec)) # evaluate similairty by cosin_similarity
 
   # calculate label score
   # result will be score of each directory

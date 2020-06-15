@@ -57,7 +57,7 @@ class NaiveBayes():
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
+def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
     dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -87,13 +87,14 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
         temp_dtm = np.zeros(len(vocab))
 
         for j in range(file_num):
-            temp_dtm += np.asarray(DTM[offset+j])
+            temp_dtm += np.asarray(DTM[offset+j][0])
             
         label_DTM.append(temp_dtm)
         offset += file_num
 
     # preprocessing : build BoW, DTM score of input file
-    dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+    # dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+    dtm_vec = input_file
 
     # make NaiveBayes instance
     naivebayes = NaiveBayes(len(vocab.keys()), len(dir_list))
