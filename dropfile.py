@@ -99,6 +99,17 @@ def prepare_env(root_path: str, verbose=False):
   vocab_dict = dict()
   synonym_dict_dict = dict()
 
+  directory_dict = defaultdict(list)  # empty dictionary for lookup_directory function
+  dir_hierarchy = normalpreprocessing.lookup_directory(root_path, directory_dict)
+  file_list = list()
+  doc_dict = dict()
+  for tar_dir in dir_hierarchy:
+      file_list += dir_hierarchy[tar_dir]
+  for file in file_list:
+    doc_dict[file] = normalpreprocessing.file2text(file)
+  if verbose:
+      print("Store cache pdf files.")
+
   for name, preprocessing in preprocessing_dict.items():
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list)  # empty dictionary for lookup_directory function
@@ -120,7 +131,7 @@ def prepare_env(root_path: str, verbose=False):
     # if (DTM is None) and (vocab is None) and (synonym_dict is None):
     doc_list = list()
     for file in file_list:
-      doc_list.append(preprocessing.file2tok(file))
+      doc_list.append(preprocessing.text2tok(doc_dict[file]))
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
     # preprocessing : build DTM of files under root_path
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
@@ -147,7 +158,7 @@ if __name__=='__main__':
   
   print("Running DropFile...")
   start = time.time()
-  # D,V,S = prepare_env(args.root_path, verbose=False)
+  D,V,S = prepare_env(args.root_path, verbose=False)
   recommendation_path = dropfile(args.input_file, args.root_path, None, None, None, verbose=False)
   print("elapsed time: {}sec".format(time.time()-start))
   print("Execution Result: {}".format(recommendation_path))
