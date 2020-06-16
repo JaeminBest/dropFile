@@ -1,3 +1,4 @@
+# Naive Bayes classification 
 import argparse
 import time
 import numpy as np
@@ -10,6 +11,23 @@ def softmax(a):
   y = exp_a / sum_exp_a
 
   return y
+
+# Softmax function 
+
+def softmax(a):
+    exp_a = np.exp(a)
+    sum_exp_a = np.sum(exp_a)
+    y = exp_a / sum_exp_a
+
+    return y
+
+def new_softmax(a):
+    c = np.max(a)
+    exp_a = np.exp(a-c)
+    sum_exp_a = np.sum(exp_a)
+    y = exp_a / sum_exp_a
+    return y
+
 
 # ===============================================================================================
 # NaiveBayes class 
@@ -48,26 +66,29 @@ class NaiveBayes():
     # predict class (directory) by posterior,  p(c_k|w_1, ..., w_n) ~ sum(log(p(w_i|c_k)))
     # input - bow : bow you want to infer the class 
     # output - index : index of class that has highest posterior.
+    # output - soft : softmax result list of all classes.
     def predict(self, bow):
 
         prob = [0]* self.num_classes
 
         for i in range(len(prob)):
             prob[i] = np.sum(bow * self.log_likelihood[i])
-
             if self.verbose:
                 print("posterior {}-th : {} ".format(i,prob[i]))
 
-        if prob != []:
-            index = prob.index(max(prob))
+        soft = new_softmax(prob)
+        print("Softmax : {} ".format(soft))
+
+        if soft != []:
+            index = soft.index(max(soft))
         else:
             index = 0
 
-        return index, prob
-
+        return index, soft
 
 # main body of program: DropFile
 # input : input file path, root path 
+
 # output : recommended path
 def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
     # preprocessing : lookup hierarchy of root path
@@ -114,12 +135,12 @@ def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None,
     naivebayes.get_likelihood_with_smoothing(label_DTM)
 
     # predict the directory 
+
     index, prob = naivebayes.predict(dtm_vec)
     if index < len(dir_list):
         dir_path = dir_list[index]
 
     return dir_list, prob, DTM, vocab, synonym_dict
-
 
 # main execution command
 if __name__=='__main__':
@@ -135,6 +156,6 @@ if __name__=='__main__':
     
     print("Running DropFile...")
     start = time.time()
-    recommendation_path = dropfile(args.input_file, args.root_path)
+    recommendation_path,_,_ = dropfile_bayes(args.input_file, args.root_path)
     print("elapsed time: {}sec".format(time.time()-start))
     print("Execution Result: {}".format(recommendation_path))
