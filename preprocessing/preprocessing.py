@@ -2,6 +2,7 @@
 import os
 import re
 from pdfminer.high_level import extract_text
+import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.corpus import stopwords
 from nltk import pos_tag
@@ -66,6 +67,7 @@ class Preprocessing():
     start = time.time()
     text = extract_text(file_path) # extract text from pdf file
     if self.verbose:
+        print(f"raw text : {text[:100]}")
         print(f"extract_text takes {time.time()-start:.4f} s.")
     return text
 
@@ -82,6 +84,7 @@ class Preprocessing():
     words = [lm.lemmatize(word) for word in words] # lemmatize words
     # words = [word for word in words if word not in common_word_list] # exclude common words in corpus
     if self.verbose:
+        print(f"After tokenize : {words[:30]}")
         print(f"text2tok takes {time.time()-start:.4f} s.")
     return words
 
@@ -164,6 +167,8 @@ class DependencyStructurePreprocessing(Preprocessing):
         head_list.append(token.lemma_)
     words = [word.lower() for word in head_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]  # regex version of above line
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
 
 class NounPhrasePreprocessing(Preprocessing):
@@ -172,7 +177,24 @@ class NounPhrasePreprocessing(Preprocessing):
     head_list = [chunk.root.lemma_ for chunk in doc.noun_chunks]
     words = [word.lower() for word in head_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]  # regex version of above line
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
+
+
+# Atomic grammar class : VERB, NOUN, BE, THAT, COMMA
+new_grammar = r"""
+S -> NP VP
+NP -> N | N NP | N "THAT" VP | "COMMA" NP | N "THAT" S
+VP -> V | V VP | V NP | V "THAT" S | V S
+N -> "NOUN"
+V -> "BE" "VERB" | "BE" | "VERB"
+"""
+
+grammar = nltk.CFG.fromstring(new_grammar)
+rd_parser = nltk.RecursiveDescentParser(grammar)
+KEYWORD_LIST = ['learn', 'study', 'represent', 'summary', 'structure', 'application', 'apply', 'involve', 'base',
+                  'require', 'achieve', 'course', 'determine', 'property', 'develop', 'create']
 
 class NounPreprocessing(Preprocessing):
   # function : convert text into list of parsed token
@@ -188,6 +210,8 @@ class NounPreprocessing(Preprocessing):
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
     words = [lm.lemmatize(word) for word in words] # lemmatize words
     # print(common_word_list)
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
 
 class SpacyPreprocessing(Preprocessing):
@@ -206,6 +230,8 @@ class SpacyPreprocessing(Preprocessing):
                 token.head.dep_ == 'ROOT')) and token.pos_ in pos_list and token.text.isalpha() and len(token.text) > 2:
           words.append(token.lemma_.lower())
     words = [word for word in words if word not in stops]  # remove stopwords
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
 
   # function : make DTMvec from input_file (bow of input_file)
@@ -252,6 +278,203 @@ class TargetWordChunkingPreprocessing(Preprocessing):
 
     return words
 
+class CFGPreprocessing(Preprocessing):
+  def __init__(self):
+    if 'DROPFILE_LOGLEVEL' in os.environ:
+      self.verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+    else:
+      self.verbose = False
+
+  def text2tok(self, text: str):
+    tagged_sents = []
+    text = text.lower()
+    doc = nlp(text)
+    for sent in doc.sents:
+      words = [token for token in sent if re.match('^[a-zA-Z]\w+$', token.text) or token.text == ',']
+      if words:
+        tagged_sents.append(words)
+
+    return tagged_sents
+
+  # function : make DTMvec from input_file (bow of input_file)
+  # input : file_path of input_file, vocab
+  # output : DTMvec (bow)
+  def build_DTMvec(self, file_path: str, vocab: dict, synonym_dict):
+    # txt = file2text(file_path)
+    # doc = text2tok(txt)
+    doc = self.extract_mean(file_path)
+    bow = self.build_BoW(doc, vocab, synonym_dict)
+    return bow
+
+  # convert token into preferarable way
+  def convert_token(self, tokens):
+    pos_sent = list()
+    index_list = list()
+    for i, tok in enumerate(tokens):
+      temp = self.convert_single_tok(tok.text, tok.pos_, tok.tag_)
+      if temp == 'UNK':
+        continue
+      pos_sent.append(temp)
+      index_list.append(i)
+    return pos_sent, index_list
+
+
+  # convert single token into preferarable way
+  # only used tag is "VERB", "VBN", "NOUN", "IN", "COMMA", "THAT", "BE', ""UNK"
+  # My tag is "VERB", "NOUN", "THAT", "BE", "UNK", "COMMA"
+  def convert_single_tok(self, word, pos, tag):
+    if word == 'that':
+      rv = 'THAT'
+    elif word == ',':
+      rv = 'COMMA'
+    elif pos == 'VERB':
+      rv = 'VERB'
+    elif lm.lemmatize(word, "v") == "be":
+      rv = "BE"
+    elif pos == 'PRON' or tag.startswith("PR"):
+      rv = 'NOUN'
+    elif tag.startswith("NN"):
+      rv = 'NOUN'
+    elif tag.startswith("VB"):
+      rv = "VERB"
+    else:
+      rv = 'UNK'
+    return rv
+
+
+  def nltkTree_traverse_index(self, t, idx):
+    try:
+      label = t.label()
+    except AttributeError:
+      return "{}/{} ".format(t, idx), idx + 1
+    else:
+      string = "({} ".format(label)
+      for child in t:
+        nstring, new_idx = self.nltkTree_traverse_index(child, idx)
+        string += nstring
+        idx = new_idx
+      string += ") "
+      return string, idx
+
+
+  # get tagged sentence and generate CFG. It returns meaningful words in sentence.
+  def generate_cfg(self, token_sent):
+    pos_sent, index_list = self.convert_token(token_sent)
+    tok_list = [token_sent[idx] for idx in index_list]
+
+    tree_list = list()
+
+    for tree in rd_parser.parse(pos_sent):
+      # print(tree)
+      tree_list.append(tree)
+
+    answer = list()
+
+    # scenario 0 : there is matching grammar
+    mean_words = []
+    for tree in tree_list:
+      nstring, _ = self.nltkTree_traverse_index(tree, 0)
+      ntree = nltk.Tree.fromstring(nstring)
+      ntree = nltk.tree.ParentedTree.convert(ntree)
+      # print("ntree: ",ntree)
+      # print("subtree: ",ntree.subtrees())
+      # target_verb,target_obj,target_subj,REVERSE_FLAG = nltkTree_VP_search(ntree.subtrees(),tok_list)
+      mean_words = self.tree_extract(ntree.subtrees(), tok_list)
+      # print('temp mean_words : ',mean_words)
+      if mean_words:
+        break
+
+    return mean_words
+
+
+  # convert leaves to words in tok_list
+  def leaves2words(self, leaves, tok_list):
+    words = []
+    for leaf in leaves:
+      tag, idx = self.get_tag_idx(leaf)
+
+      word = tok_list[idx].text
+      words.append(word)
+    return words
+
+
+  #
+  # extract meaningful words from CFG parsed tree
+  def tree_extract(self, subtrees, tok_list):
+    for tree in subtrees:
+      try:
+        tree.label()
+      except AttributeError:
+        continue
+      else:
+        if tree.label() != 'S':
+          leaves = tree.leaves()
+          words = self.leaves2words(leaves, tok_list)
+
+          if self.contain_list(words):
+            return words
+        else:
+          continue
+
+        # print('label :',tree.label())
+        # print('leaves :', tree.leaves())
+
+
+  # check whether words list has target word
+  def contain_list(self, words):
+    for word in words:
+      lemma = lm.lemmatize(word)
+      if lemma in KEYWORD_LIST:
+        return True
+    return False
+
+
+  # get tag and idx of leaf
+  def get_tag_idx(self, word):
+    tag, idx = word.split('/')
+    return tag, int(idx)
+
+
+  # lemmatize given token. if token pos is VERB, it lemmatize it with 'v' option.
+  def lemmatize(self, token):
+    if token.pos_ == "VERB":
+      return lm.lemmatize(token.text, 'v')
+    else:
+      return lm.lemmatize(token.text)
+
+
+  def is_contain(self, token_sent):
+    for target in KEYWORD_LIST:
+      if target in list(map(lambda x: self.lemmatize(x), token_sent)):
+        return True
+    return False
+
+
+  def filter_target(self, token_sents):
+    filter_sents = []
+    for sent in token_sents:
+      if self.is_contain(sent):
+        filter_sents.append(sent)
+    return filter_sents
+
+
+  # extract meaningful words from input file path
+  def extract_mean(self, file):
+    token_sent = self.file2tok(file)
+    filter_sent = self.filter_target(token_sent)
+    # print('filter sent:',filter_sent)
+    mean_words = []
+    for sent in filter_sent:
+      temp = self.generate_cfg(sent)
+      if temp:
+        mean_words.extend(temp)
+
+    # remove stopwords and comma
+    stops = stopwords.words('english')
+    mean_words = [word for word in mean_words if word != ',']
+    mean_words = [word for word in mean_words if word not in stops]
+
+    return mean_words
 
 if __name__ == "__main__":
   preprocessing = NounPhrasePreprocessing()

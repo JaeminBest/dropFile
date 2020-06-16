@@ -73,38 +73,27 @@ class NaiveBayes():
 
         for i in range(len(prob)):
             prob[i] = np.sum(bow * self.log_likelihood[i])
-
-<<<<<<< HEAD:naivebayes.py
-        
-        soft = new_softmax(prob)
-        print("Softmax : {} ".format(soft))
-        index = prob.index(max(prob))
-        return index, soft
-=======
             if self.verbose:
                 print("posterior {}-th : {} ".format(i,prob[i]))
 
-        if prob != []:
-            index = prob.index(max(prob))
+        soft = new_softmax(prob)
+        print("Softmax : {} ".format(soft))
+
+        if soft != []:
+            index = soft.index(max(soft))
         else:
             index = 0
 
-        return index, prob
->>>>>>> b3469b09ab268a99cfe8579bd5ef81d7cb9b2163:score/score_bayes.py
-
+        return index, soft
 
 # main body of program: DropFile
 # input : input file path, root path 
-<<<<<<< HEAD:naivebayes.py
-# output : list of softmax score for all classes.
-def dropfile_bayes(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None):
-=======
+
 # output : recommended path
 def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
->>>>>>> b3469b09ab268a99cfe8579bd5ef81d7cb9b2163:score/score_bayes.py
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
-    dir_hierarchy = naivebayes_preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
+    dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
 
     file_list = list()
     dir_list = list()
@@ -118,10 +107,10 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
     if (DTM is None) and (vocab is None) and (synonym_dict is None):
         doc_list = list()
         for file in file_list:
-            doc_list.append(naivebayes_preprocessing.file2tok(file))
-        vocab, synonym_dict = naivebayes_preprocessing.build_vocab(doc_list)
+            doc_list.append(preprocessing.file2tok(file))
+        vocab, synonym_dict = preprocessing.build_vocab(doc_list)
         # preprocessing : build DTM of files under root_path
-        DTM = naivebayes_preprocessing.build_DTM(doc_list, vocab, synonym_dict)
+        DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
     
     # accumulate DTM by label (directories)
     label_DTM = list()
@@ -137,7 +126,7 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
         offset += file_num
 
     # preprocessing : build BoW, DTM score of input file
-    dtm_vec = naivebayes_preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+    dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
 
     # make NaiveBayes instance
     naivebayes = NaiveBayes(len(vocab.keys()), len(dir_list))
@@ -146,19 +135,12 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
     naivebayes.get_likelihood_with_smoothing(label_DTM)
 
     # predict the directory 
-<<<<<<< HEAD:naivebayes.py
-    index,soft = naivebayes.predict(dtm_vec)
-    dir_path = dir_list[index]
 
-    return soft # dir_path, DTM, vocab
-=======
     index, prob = naivebayes.predict(dtm_vec)
     if index < len(dir_list):
         dir_path = dir_list[index]
 
     return dir_list, prob, DTM, vocab, synonym_dict
->>>>>>> b3469b09ab268a99cfe8579bd5ef81d7cb9b2163:score/score_bayes.py
-
 
 # main execution command
 if __name__=='__main__':

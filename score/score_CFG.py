@@ -3,9 +3,9 @@
 
 import argparse
 import time
-import CFG_preprocessing
 import numpy as np
 from collections import defaultdict
+import os
 # cosine similarity
 def cosine_similarity(A,B):
   ndA = np.asarray(A)
@@ -46,10 +46,15 @@ def new_softmax(a):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict=None, mse=False):
+def score_CFG(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
+  if 'DROPFILE_LOGLEVEL' in os.environ:
+    verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+  else:
+    verbose = 0
+
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
-  dir_hierarchy = CFG_preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
+  dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
 
   file_list = list()
   dir_list = list() 
@@ -63,16 +68,16 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
   if (DTM is None) and (vocab is None) and (synonym_dict is None):
     doc_list = list()
     for file in file_list:
-      doc_list.append(CFG_preprocessing.extract_mean(file))
-    vocab, synonym_dict = CFG_preprocessing.build_vocab(doc_list)
+      doc_list.append(preprocessing.extract_mean(file))
+    vocab, synonym_dict = preprocessing.build_vocab(doc_list)
     #print('vocab: {}, synonym:{}'.format(vocab,synonym_dict))
     # preprocessing : build DTM of files under root_path
-    DTM = CFG_preprocessing.build_DTM(doc_list, vocab, synonym_dict)
+    DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
     # print("DTM:",DTM)
     
   # preprocessing : build BoW, DTM score of input file
   
-  dtm_vec = CFG_preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+  dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
@@ -108,9 +113,10 @@ def dropfile(input_file: str, root_path: str, DTM=None, vocab=None, synonym_dict
 
   # print each directory's softmax score
   for i in range(len(dir_list)):
-    print("directory %s score : %6.3f" %(dir_list[i],soft_score[i]))
+    if verbose:
+      print("directory %s score : %6.3f" %(dir_list[i],soft_score[i]))
 
-  return soft_score
+  return dir_list, soft_score, DTM, vocab, synonym_dict
   
 
 

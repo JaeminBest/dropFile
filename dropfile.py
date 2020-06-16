@@ -2,9 +2,11 @@ import argparse
 import time
 from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
 from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
+from .preprocessing.preprocessing import CFGPreprocessing
 from .score.score_bayes import score_bayes
 from .score.score_cosine import score_cosine
 from .score.score_mse import score_mse
+from .score.score_CFG import score_CFG
 
 import numpy as np
 from collections import defaultdict
@@ -23,21 +25,24 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   npreprocessing = NounPreprocessing()
   spacypreprocessing = SpacyPreprocessing()
   twcpreprocessing = TargetWordChunkingPreprocessing()
+  cfgpreprocessing = CFGPreprocessing()
   preprocessing_dict = {"Preprocessing": normalpreprocessing,
                         "DependencyStructurePreprocessing": dspreprocessing,
                         "NounPhrasePreprocessing": nppreprocessing,
                         "NounPreprocessing": npreprocessing,
                         "SpacyPreprocessing": spacypreprocessing,
-                        "TargetWordChunkingPreprocessing": twcpreprocessing}
+                        "TargetWordChunkingPreprocessing": twcpreprocessing,
+                        "CFGPreprocessing": cfgpreprocessing}
 
   ensembles = [
                # {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},
                # {"preprocessing": "DependencyStructurePreprocessing", "scoring": score_cosine, "weight": 1},
                # {"preprocessing": "NounPhrasePreprocessing", "scoring": score_cosine, "weight": 1},
                # {"preprocessing": "NounPreprocessing", "scoring": score_cosine, "weight": 1},
-               {"preprocessing": "Preprocessing", "scoring": score_bayes, "weight": 1},
-               {"preprocessing": "SpacyPreprocessing", "scoring": score_cosine, "weight": 1},
-               {"preprocessing": "Preprocessing", "scoring": score_mse, "weight": 1},
+               # {"preprocessing": "Preprocessing", "scoring": score_bayes, "weight": 1},
+               # {"preprocessing": "SpacyPreprocessing", "scoring": score_cosine, "weight": 1},
+               # {"preprocessing": "Preprocessing", "scoring": score_mse, "weight": 1},
+              {"preprocessing": "CFGPreprocessing", "scoring": score_CFG, "weight": 1},
               ]
 
   label_scores = []
@@ -89,12 +94,14 @@ def prepare_env(root_path: str, cached_tokens=None, verbose=False):
   npreprocessing = NounPreprocessing()
   spacypreprocessing = SpacyPreprocessing()
   twcpreprocessing = TargetWordChunkingPreprocessing()
+  cfgpreprocessing = CFGPreprocessing()
   preprocessing_dict = {"Preprocessing": normalpreprocessing,
                         "DependencyStructurePreprocessing": dspreprocessing,
                         "NounPhrasePreprocessing": nppreprocessing,
                         "NounPreprocessing": npreprocessing,
                         "SpacyPreprocessing": spacypreprocessing,
-                        "TargetWordChunkingPreprocessing": twcpreprocessing}
+                        "TargetWordChunkingPreprocessing": twcpreprocessing,
+                        "CFGPreprocessing": cfgpreprocessing}
 
   DTM_dict = dict()
   vocab_dict = dict()
@@ -121,6 +128,8 @@ def prepare_env(root_path: str, cached_tokens=None, verbose=False):
     print(f"file2text takes {time.time() - start:.4f} s.")
 
   for name, preprocessing in preprocessing_dict.items():
+    if verbose:
+      print(f"{name} started")
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list)  # empty dictionary for lookup_directory function
 
@@ -187,18 +196,18 @@ if __name__=='__main__':
   print("Running DropFile...")
   print("prepare_env...")
   start = time.time()
-  D,V,S,T = prepare_env(args.root_path, verbose=False)
+  # D,V,S,T = prepare_env(args.root_path, verbose=True)
   print("elapsed time: {}sec".format(time.time() - start))
   shutil.copy("C:\\dropFile\\textfiles\\A''\\01Intro.pdf", "C:\\dropFile\\test\\A")
   print("update with a new file...")
   start = time.time()
-  D,V,S,T = prepare_env(args.root_path, T, verbose=False)
+  # D,V,S,T = prepare_env(args.root_path, T, verbose=False)
   print("elapsed time: {}sec".format(time.time() - start))
   os.remove("C:\\dropFile\\test\\A\\01Intro.pdf")
   print("update with a deleted file...")
   start = time.time()
-  D,V,S,T = prepare_env(args.root_path, T, verbose=False)
+  # D,V,S,T = prepare_env(args.root_path, T, verbose=False)
   print("elapsed time: {}sec".format(time.time() - start))
-  # recommendation_path = dropfile(args.input_file, args.root_path, None, None, None, verbose=False)
+  recommendation_path = dropfile(args.input_file, args.root_path, None, None, None, verbose=True)
   print("elapsed time: {}sec".format(time.time()-start))
   print("Execution Result: {}".format(recommendation_path))
