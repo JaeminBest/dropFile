@@ -133,7 +133,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
     file_list += dir_hierarchy[tar_dir]
     dir_list.append(tar_dir)
     label_num += 1
-  
+  random.shuffle(file_list)
   if interim_flag:
      if (len(dir_list) not in [3,4]):
        raise Exception("you should put only 3 or 4 directories in ROOT_PATH")
@@ -188,7 +188,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
 
 
       if (vocab is None) and (DTM is None) and (synonym_dict is None):
-        answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,preprocessing_name,score_name)
+        answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,preprocessing=preprocessing_name,scoring=score_name)
         with open(pickle_path + '/DTM-{}'.format(j), 'wb') as f:
           pickle.dump(DTM, f)
         with open(pickle_path + '/vocab-{}'.format(j), 'wb') as f:
@@ -198,7 +198,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
         # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
 
       else:
-        answer,_,_,_ = dropfile.dropfile(input_path,test_path,preprocessing_name,score_name,DTM,vocab,synonym_dict)
+        answer,_,_,_ = dropfile.dropfile(input_path,test_path,DTM,vocab,synonym_dict,preprocessing=preprocessing_name,scoring=score_name)
         # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
 
       if (answer==label[j]):
@@ -242,8 +242,8 @@ if __name__=='__main__':
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test/case2-3')
   parser.add_argument('-e', help='experiment option for interim report', default=True, action='store_true')
-  parser.add_argument('-a', help='name of preprocessing ', default="Preprocessing", action='store_true')
-  parser.add_argument('-b', help='name of score ', default="score_cosine", action='store_true')
+  parser.add_argument('-a', help='name of preprocessing ', default=None, action='store_true')
+  parser.add_argument('-b', help='name of score ', default=None, action='store_true')
   args = parser.parse_args()
 
   print("Running Evaluation DropFile...")

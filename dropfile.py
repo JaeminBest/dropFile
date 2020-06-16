@@ -1,10 +1,10 @@
 import argparse
 import time
-from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
-from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
-from .score.score_bayes import score_bayes
-from .score.score_cosine import score_cosine
-from .score.score_mse import score_mse
+from preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
+from preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
+from score.score_bayes import score_bayes
+from score.score_cosine import score_cosine
+from score.score_mse import score_mse
 
 import numpy as np
 from collections import defaultdict
@@ -14,7 +14,7 @@ import pickle
 # main body of program: DropFile
 # input : input file path, root path
 # output : recommended path
-def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None, verbose=False):
+def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None, verbose=True, preprocessing=None, scoring=None):
   os.environ['DROPFILE_LOGLEVEL'] = "1" if verbose else "0"
 
   normalpreprocessing = Preprocessing()
@@ -49,7 +49,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     else:
       dir_list, label_score, _, _, _ = \
           scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing], None, None, None)
-    print(f"{preprocessing}, {scoring.__name__.split('_')[1]} score is {label_score}")
+    if verbose:
+        print(label_score)
 
     score_arr = np.array(label_score)
 
@@ -59,10 +60,10 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
-               # {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "DependencyStructurePreprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "NounPhrasePreprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "NounPreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "DependencyStructurePreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "NounPhrasePreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "NounPreprocessing", "scoring": score_cosine, "weight": 1},
                {"preprocessing": "Preprocessing", "scoring": score_bayes, "weight": 1},
                {"preprocessing": "SpacyPreprocessing", "scoring": score_cosine, "weight": 1},
                {"preprocessing": "Preprocessing", "scoring": score_mse, "weight": 1},
