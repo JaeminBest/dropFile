@@ -9,6 +9,7 @@ from .score.score_mse import score_mse
 import numpy as np
 from collections import defaultdict
 import os
+import pickle
 
 # main body of program: DropFile
 # input : input file path, root path
@@ -79,7 +80,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   # print(dir_path)
   return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
-def prepare_env(root_path: str, verbose=False):
+def prepare_env(root_path: str, cached_tokens=None, verbose=False):
   os.environ['DROPFILE_LOGLEVEL'] = "1" if verbose else "0"
 
   normalpreprocessing = Preprocessing()
@@ -99,16 +100,25 @@ def prepare_env(root_path: str, verbose=False):
   vocab_dict = dict()
   synonym_dict_dict = dict()
 
+  start = time.time()
   directory_dict = defaultdict(list)  # empty dictionary for lookup_directory function
   dir_hierarchy = normalpreprocessing.lookup_directory(root_path, directory_dict)
   file_list = list()
   doc_dict = dict()
+
   for tar_dir in dir_hierarchy:
       file_list += dir_hierarchy[tar_dir]
+
+  if cached_tokens is None:
+    tokens_dict = defaultdict(dict)
+  else:
+    tokens_dict = cached_tokens
+
   for file in file_list:
-    doc_dict[file] = normalpreprocessing.file2text(file)
+    if file not in tokens_dict["Preprocessing"]:
+      doc_dict[file] = normalpreprocessing.file2text(file)
   if verbose:
-      print("Store cache pdf files.")
+    print(f"file2text takes {time.time() - start:.4f} s.")
 
   for name, preprocessing in preprocessing_dict.items():
     # preprocessing : lookup hierarchy of root path
@@ -130,21 +140,39 @@ def prepare_env(root_path: str, verbose=False):
     # preprocessing : build vocabulary from file_list
     # if (DTM is None) and (vocab is None) and (synonym_dict is None):
     doc_list = list()
+    start = time.time()
     for file in file_list:
-      doc_list.append(preprocessing.text2tok(doc_dict[file]))
+      if name in tokens_dict and file in tokens_dict[name]:
+        tokens = tokens_dict[name][file]
+      else:
+        tokens = preprocessing.text2tok(doc_dict[file])
+      doc_list.append(tokens)
+      tokens_dict[name][file] = tokens
+
+    if verbose:
+        print(f"{name}.text2tok takes {time.time()-start:.4f} s.")
+    start = time.time()
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
+    if verbose:
+        print(f"{name}.build_vocab takes {time.time()-start:.4f} s.")
     # preprocessing : build DTM of files under root_path
+    start = time.time()
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
+    if verbose:
+        print(f"{name}.build_DTM takes {time.time()-start:.4f} s.")
 
     DTM_dict[name] = DTM
     vocab_dict[name] = vocab
     synonym_dict_dict[name] = synonym_dict
 
-  return DTM_dict, vocab_dict, synonym_dict_dict
+  return DTM_dict, vocab_dict, synonym_dict_dict, tokens_dict
 
 
 # main execution command
 if __name__=='__main__':
+  import shutil
+  import os
+
   parser = argparse.ArgumentParser(description='dropFile program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default=os.path.join('.', 'test'))
@@ -157,8 +185,20 @@ if __name__=='__main__':
     parser.error("--input-file(-i) format should be specified")
   
   print("Running DropFile...")
+  print("prepare_env...")
   start = time.time()
-  D,V,S = prepare_env(args.root_path, verbose=False)
-  recommendation_path = dropfile(args.input_file, args.root_path, None, None, None, verbose=False)
+  D,V,S,T = prepare_env(args.root_path, verbose=False)
+  print("elapsed time: {}sec".format(time.time() - start))
+  shutil.copy("C:\\dropFile\\textfiles\\A''\\01Intro.pdf", "C:\\dropFile\\test\\A")
+  print("update with a new file...")
+  start = time.time()
+  D,V,S,T = prepare_env(args.root_path, T, verbose=False)
+  print("elapsed time: {}sec".format(time.time() - start))
+  os.remove("C:\\dropFile\\test\\A\\01Intro.pdf")
+  print("update with a deleted file...")
+  start = time.time()
+  D,V,S,T = prepare_env(args.root_path, T, verbose=False)
+  print("elapsed time: {}sec".format(time.time() - start))
+  # recommendation_path = dropfile(args.input_file, args.root_path, None, None, None, verbose=False)
   print("elapsed time: {}sec".format(time.time()-start))
   print("Execution Result: {}".format(recommendation_path))
