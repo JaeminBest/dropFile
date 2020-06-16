@@ -34,7 +34,13 @@ def softmax(a):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
-def score_cosine(input_file, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
+
+def score_cosine(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
+  if 'DROPFILE_LOGLEVEL' in os.environ:
+    verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+  else:
+    verbose = 0
+
   # preprocessing : lookup hierarchy of root path
   directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
   dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -86,13 +92,17 @@ def score_cosine(input_file, root_path: str, preprocessing, DTM=None, vocab=None
       # print(label_score)
     label_score[label] /= file_num
     offset += file_num
-  print("label score: ", softmax(label_score))
+
+  if verbose:
+    print("label score: ", softmax(label_score))
   # find directory that has maximum score
 
-  if mse:
-    dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
-  else:
-    dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
+  if label_score != []:
+    if mse:
+      dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
+    else:
+      dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
+
 
   # print(dir_path)
   return dir_list, label_score, DTM, vocab, synonym_dict

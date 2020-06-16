@@ -13,6 +13,7 @@ from nltk import CFG
 from nltk import RecursiveDescentParser
 import spacy
 import pickle
+import time
 
 print("Loading spacy!")
 nlp = spacy.load('en_core_web_lg')
@@ -23,7 +24,10 @@ lm = WordNetLemmatizer()
 
 class Preprocessing():
   def __init__(self):
-    pass
+    if 'DROPFILE_LOGLEVEL' in os.environ:
+      self.verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+    else:
+      self.verbose = False
 
   # function : lookup directory hierarchy under root_path
   # input : root_path, empty dictionary for storage
@@ -69,9 +73,14 @@ class Preprocessing():
   # implementation : Regex 라이브러리로 필터링
   def text2tok(self, text: str):
     words = word_tokenize(text) # tokenize words by nltk word_toknizer
+    stops = stopwords.words('english')
+    start = time.time()
     words = [word.lower() for word in words] # convert uppercase to lowercase
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
     words = [lm.lemmatize(word) for word in words] # lemmatize words
+    # words = [word for word in words if word not in common_word_list] # exclude common words in corpus
+    if self.verbose:
+        print(f"text2tok takes {time.time()-start:.4f} s.")
     return words
 
   # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)

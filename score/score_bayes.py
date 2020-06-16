@@ -2,6 +2,7 @@ import argparse
 import time
 import numpy as np
 from collections import defaultdict
+import os
 
 def softmax(a):
   exp_a = np.exp(a)
@@ -17,6 +18,11 @@ def softmax(a):
 
 class NaiveBayes():
     def __init__(self, num_vocab, num_classes):
+        if 'DROPFILE_LOGLEVEL' in os.environ:
+            self.verbose = int(os.environ['DROPFILE_LOGLEVEL'])
+        else:
+            self.verbose = 0
+
         self.num_vocab = num_vocab
         self.num_classes = num_classes
 
@@ -48,9 +54,15 @@ class NaiveBayes():
 
         for i in range(len(prob)):
             prob[i] = np.sum(bow * self.log_likelihood[i])
-            print("posterior {}-th : {} ".format(i,prob[i]))
 
-        index = prob.index(max(prob))
+            if self.verbose:
+                print("posterior {}-th : {} ".format(i,prob[i]))
+
+        if prob != []:
+            index = prob.index(max(prob))
+        else:
+            index = 0
+
         return index, prob
 
 
@@ -103,7 +115,8 @@ def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None,
 
     # predict the directory 
     index, prob = naivebayes.predict(dtm_vec)
-    dir_path = dir_list[index]
+    if index < len(dir_list):
+        dir_path = dir_list[index]
 
     return dir_list, prob, DTM, vocab, synonym_dict
 
