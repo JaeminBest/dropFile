@@ -12,6 +12,7 @@ from nltk.probability import FreqDist
 from nltk import CFG
 from nltk import RecursiveDescentParser
 import spacy
+import pickle
 
 print("Loading spacy!")
 nlp = spacy.load('en_core_web_lg')
@@ -41,12 +42,10 @@ class Preprocessing():
           if os.path.isdir(full_filename):
             self.lookup_directory(full_filename, directory_dict)
           else:
-            extension = os.path.splitext(full_filename)[-1]
-            if extension == '.pdf':
-              if root_path in directory_dict:
-                directory_dict[root_path].append(full_filename)
-              else:
-                directory_dict[root_path] = [full_filename]
+            if root_path in directory_dict:
+              directory_dict[root_path].append(full_filename)
+            else:
+              directory_dict[root_path] = [full_filename]
       else:
         return directory_dict # add return value
     except PermissionError:

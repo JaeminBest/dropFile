@@ -13,7 +13,7 @@ import os
 # main body of program: DropFile
 # input : input file path, root path
 # output : recommended path
-def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None):
+def dropfile(input_file: str, root_path: str, preprocessing=None, scoring=None, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None):
   normalpreprocessing = Preprocessing()
   dspreprocessing = DependencyStructurePreprocessing()
   nppreprocessing = NounPhrasePreprocessing()
@@ -24,6 +24,34 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
                         "NounPhrasePreprocessing": nppreprocessing,
                         "NounPreprocessing": npreprocessing,
                         "SpacyPreprocessing": spacypreprocessing}
+  scoring_dict = {"score_mse": score_mse,
+                  "score_cosine": score_cosine,
+                  "score_bayes": score_bayes}
+  
+
+  if preprocessing is not None and scoring is not None:
+    preprocessing_list = ["Preprocessing", "DependencyStructurePreprocessing", "NounPhrasePreprocessing",
+                          "NounPreprocessing", "SpacyPreprocessing", "TargetWordChunkingPreprocessing"]
+    if preprocessing not in preprocessing_list:
+      print("Enter the valid preprocessing name")
+      return
+
+    if preprocessing in cached_DTM and preprocessing in cached_vocab and preprocessing in cached_synonym_dict:
+      dir_list, label_score, _, _, _ = \
+        scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing],
+        cached_DTM[preprocessing], cached_vocab[preprocessing],
+        cached_synonym_dict[preprocessing])
+    else:
+      dir_list, label_score, _, _, _ = \
+          scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing], None, None, None)
+    print(f"{preprocessing}, {scoring.__name__.split('_')[1]} score is {label_score}")
+
+    score_arr = np.array(label_score)
+
+    dir_path = dir_list[score_arr.argmax()]
+    # dir_path = dir_list[label_score.index(max(label_score))]
+    # print(dir_path)
+    return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
                {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},

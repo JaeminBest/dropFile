@@ -87,14 +87,13 @@ def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None,
         temp_dtm = np.zeros(len(vocab))
 
         for j in range(file_num):
-            temp_dtm += np.asarray(DTM[offset+j][0])
+            temp_dtm += np.asarray(DTM[offset+j])
             
         label_DTM.append(temp_dtm)
         offset += file_num
 
     # preprocessing : build BoW, DTM score of input file
-    # dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
-    dtm_vec = input_file
+    dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
 
     # make NaiveBayes instance
     naivebayes = NaiveBayes(len(vocab.keys()), len(dir_list))

@@ -105,16 +105,14 @@ def prepare_env(comb_num: int, file_list: list, locate_flag: list):
 # implementation : output의 각 element는 위 prepare_env 함수의 locate_flag로 들어갈 수 있는 포맷이어야함
 def calculate_combination(file_list):
   lf_list = list()
-  lf_list.append([False, True, False])
-  lf_list.append([False, False, True])
-  # length = len(file_list)
-  # l1 = int(length/4)
-  # l2 = l1*2
-  # l3 = l1*3
-  # lf_list.append([True]*l3 + [False]*l1)
-  # lf_list.append([True]*l2 + [False]*l1 + [True]*l1)
-  # lf_list.append([True]*l1+[False]*l1+[True]*l2)
-  # lf_list.append([False]*l1+ [True]*l3)
+  length = len(file_list)
+  l1 = int(length/4)
+  l2 = l1*2
+  l3 = l1*3
+  lf_list.append([True]*l3 + [False]*l1)
+  lf_list.append([True]*l2 + [False]*l1 + [True]*l1)
+  lf_list.append([True]*l1+[False]*l1+[True]*l2)
+  lf_list.append([False]*l1+ [True]*l3)
   return lf_list
 
 
@@ -180,43 +178,44 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
         with open('./test/case1/synonym_dict-{}'.format(j), 'rb') as f:
           synonym_dict = pickle.load(f)
 
-      elif os.path.isfile(pickle_path+'DTM-{}'.format(j)):
+      elif os.path.isfile(pickle_path+'/DTM-{}'.format(j)):
         with open(pickle_path + '/DTM-{}'.format(j), 'rb') as f:
           DTM = pickle.load(f)
         with open(pickle_path + '/vocab-{}'.format(j), 'rb') as f:
           vocab = pickle.load(f)
         with open(pickle_path + '/synonym_dict-{}'.format(j), 'rb') as f:
           synonym_dict = pickle.load(f)
+
+
+      if (vocab is None) and (DTM is None) and (synonym_dict is None):
+        answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,preprocessing_name,score_name)
+        with open(pickle_path + '/DTM-{}'.format(j), 'wb') as f:
+          pickle.dump(DTM, f)
+        with open(pickle_path + '/vocab-{}'.format(j), 'wb') as f:
+          pickle.dump(vocab, f)
+        with open(pickle_path + '/synonym_dict-{}'.format(j), 'wb') as f:
+          pickle.dump(synonym_dict, f)
+        # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
+
       else:
-        if (vocab is None) and (DTM is None) and (synonym_dict is None):
-          answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path)
-          with open(pickle_path + '/DTM-{}'.format(j), 'wb') as f:
-            pickle.dump(DTM, f)
-          with open(pickle_path + '/vocab-{}'.format(j), 'wb') as f:
-            pickle.dump(vocab, f)
-          with open(pickle_path + '/synonym_dict-{}'.format(j), 'wb') as f:
-            pickle.dump(synonym_dict, f)
-          # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
+        answer,_,_,_ = dropfile.dropfile(input_path,test_path,preprocessing_name,score_name,DTM,vocab,synonym_dict)
+        # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
 
-        else:
-          answer,_,_,_ = dropfile.dropfile(input_path,test_path)
-          # answer,_,_ = naivebayes.dropfile_bayes(input_path, test_path, DTM, vocab, synonym_dict)
+      if (answer==label[j]):
+        correct += 1
+        local_correct += 1
+        if interim_flag:
+          answer_name = answer.split('/')[-1]
+          direct_idx = directory_name.index(answer_name)
+          conf_mat[direct_idx][direct_idx] += 1
 
-        if (answer==label[j]):
-          correct += 1
-          local_correct += 1
-          if interim_flag:
-            answer_name = answer.split('/')[-1]
-            direct_idx = directory_name.index(answer_name)
-            conf_mat[direct_idx][direct_idx] += 1
-
-        else:
-          if interim_flag:
-            answer_name = answer.split('/')[-1]
-            label_name = label[j].split('/')[-1]
-            orig_idx = directory_name.index(label_name)
-            direct_idx = directory_name.index(answer_name)
-            conf_mat[orig_idx][direct_idx] += 1
+      else:
+        if interim_flag:
+          answer_name = answer.split('/')[-1]
+          label_name = label[j].split('/')[-1]
+          orig_idx = directory_name.index(label_name)
+          direct_idx = directory_name.index(answer_name)
+          conf_mat[orig_idx][direct_idx] += 1
         
     # delete test environment
     shutil.rmtree(test_path)
@@ -241,7 +240,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
 if __name__=='__main__':
   parser = argparse.ArgumentParser(description='dropFile evaluation program')
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
-                      type=str, action='store', default='./test')
+                      type=str, action='store', default='./test/case2-3')
   parser.add_argument('-e', help='experiment option for interim report', default=True, action='store_true')
   parser.add_argument('-a', help='name of preprocessing ', default="Preprocessing", action='store_true')
   parser.add_argument('-b', help='name of score ', default="score_cosine", action='store_true')
