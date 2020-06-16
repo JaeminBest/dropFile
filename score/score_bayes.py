@@ -79,8 +79,8 @@ class NaiveBayes():
         soft = new_softmax(prob)
         print("Softmax : {} ".format(soft))
 
-        if soft != []:
-            index = soft.index(max(soft))
+        if prob != []:
+            index = prob.index(max(prob))
         else:
             index = 0
 

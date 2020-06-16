@@ -171,29 +171,29 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
       trial +=1
       # case3 (case1을 가져와서 새로운 file 넣기(score가 일정해야함))
       if root_path == './test/case3':
-        with open('./test/case1/DTM-{}'.format(j), 'rb') as f:
+        with open('./test/case1/DTM-{}'.format(i), 'rb') as f:
           DTM = pickle.load(f)
-        with open('./test/case1/vocab-{}'.format(j), 'rb') as f:
+        with open('./test/case1/vocab-{}'.format(i), 'rb') as f:
           vocab = pickle.load(f)
-        with open('./test/case1/synonym_dict-{}'.format(j), 'rb') as f:
+        with open('./test/case1/synonym_dict-{}'.format(i), 'rb') as f:
           synonym_dict = pickle.load(f)
 
-      elif os.path.isfile(pickle_path+'/DTM-{}'.format(j)):
-        with open(pickle_path + '/DTM-{}'.format(j), 'rb') as f:
+      elif os.path.isfile(pickle_path+'/DTM-{}'.format(i)):
+        with open(pickle_path + '/DTM-{}'.format(i), 'rb') as f:
           DTM = pickle.load(f)
-        with open(pickle_path + '/vocab-{}'.format(j), 'rb') as f:
+        with open(pickle_path + '/vocab-{}'.format(i), 'rb') as f:
           vocab = pickle.load(f)
-        with open(pickle_path + '/synonym_dict-{}'.format(j), 'rb') as f:
+        with open(pickle_path + '/synonym_dict-{}'.format(i), 'rb') as f:
           synonym_dict = pickle.load(f)
 
 
       if (vocab is None) and (DTM is None) and (synonym_dict is None):
         answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,preprocessing=preprocessing_name,scoring=score_name)
-        with open(pickle_path + '/DTM-{}'.format(j), 'wb') as f:
+        with open(pickle_path + '/DTM-{}'.format(i), 'wb') as f:
           pickle.dump(DTM, f)
-        with open(pickle_path + '/vocab-{}'.format(j), 'wb') as f:
+        with open(pickle_path + '/vocab-{}'.format(i), 'wb') as f:
           pickle.dump(vocab, f)
-        with open(pickle_path + '/synonym_dict-{}'.format(j), 'wb') as f:
+        with open(pickle_path + '/synonym_dict-{}'.format(i), 'wb') as f:
           pickle.dump(synonym_dict, f)
         # answer, DTM, vocab = naivebayes.dropfile_bayes(input_path, test_path)
 
@@ -230,7 +230,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
   ax.set_xlabel('expected directory')
   ax.set_ylabel('recommended directory')
   ax.set_title('result')
-  plt.savefig('confusion_matrix.png')
+  plt.savefig('confusion_matrix_{}.png'.format(root_path.split('/')[-1]))
   plt.show()
   
   

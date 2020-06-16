@@ -1,25 +1,18 @@
 import argparse
 import time
-<<<<<<< HEAD
 from preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
 from preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
+from preprocessing.preprocessing import CFGPreprocessing
 from score.score_bayes import score_bayes
 from score.score_cosine import score_cosine
 from score.score_mse import score_mse
-=======
-from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
-from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
-from .preprocessing.preprocessing import CFGPreprocessing
-from .score.score_bayes import score_bayes
-from .score.score_cosine import score_cosine
-from .score.score_mse import score_mse
-from .score.score_CFG import score_CFG
->>>>>>> 735d6c8dc2bf7b31108c13ed87a5721200b047e4
-
+from score.score_CFG import score_CFG
 import numpy as np
 from collections import defaultdict
+import matplotlib.pyplot as plt
 import os
 import pickle
+
 
 # main body of program: DropFile
 # input : input file path, root path
@@ -61,15 +54,24 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
         cached_synonym_dict[preprocessing])
     else:
       dir_list, label_score, _, _, _ = \
-          scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing], None, None, None)
+        scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing], None, None, None)
     if verbose:
-        print(label_score)
+      print(label_score)
 
     score_arr = np.array(label_score)
 
     dir_path = dir_list[score_arr.argmax()]
     # dir_path = dir_list[label_score.index(max(label_score))]
     # print(dir_path)
+
+    directory_name = [path.split('/')[-1] for path in dir_list]
+    y = score_arr
+    x = np.arange(len(y))
+    xlabel = directory_name
+    plt.title("Label Score of {}".format(input_file.split("\\")[-1]))
+    plt.bar(x, y)
+    plt.xticks(x, xlabel, color="blue")
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-1]))
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
