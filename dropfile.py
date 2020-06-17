@@ -61,6 +61,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
       print(label_score)
 
     score_arr = np.array(label_score)
+    score_arr[0] = score_arr[0] / sum(score_arr[0])
 
     dir_path = dir_list[score_arr.argmax()]
     # dir_path = dir_list[label_score.index(max(label_score))]
@@ -126,6 +127,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     label_scores.append(label_score)
 
   score_arr = np.array(label_scores)
+  for i in range(score_arr.shape[0]):
+    score_arr[i] = score_arr[i]/sum(score_arr[i])
   if verbose:
       print(score_arr)
   final_label_score = np.array([0.0] * score_arr.shape[1])
