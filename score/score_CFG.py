@@ -103,10 +103,11 @@ def score_CFG(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
   # print(label_score)
   # find directory that has maximum score
 
-  if mse:
-    dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
-  else:
-    dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
+  if label_score != []:
+    if mse:
+      dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
+    else:
+      dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
   
   # calculate the softmax score
   soft_score = softmax(label_score)
