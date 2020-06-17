@@ -267,16 +267,31 @@ class TargetWordChunkingPreprocessing(Preprocessing):
     for sent in doc.sents:
       if flag > 0:
         for chunk in sent.noun_chunks:
-          chunk_list.append(chunk.lemma_)
-          flag -= 1
-      for token in sent:
-        if token.lemma_ in target_word:
-          flag = 2
-          for chunk in sent.noun_chunks:
+          if " " in chunk.lemma_:
+            temp_chunk = chunk.lemma_.split(" ")
+            for i in temp_chunk:
+              chunk_list.append(i)
+          else:
             chunk_list.append(chunk.lemma_)
+        flag -= 1
+      else:
+        for token in sent:
+          if token.lemma_ in target_word:
+            flag = 2
+            for chunk in sent.noun_chunks:
+              if " " in chunk.lemma_:
+                temp_chunk = chunk.lemma_.split(" ")
+                for i in temp_chunk:
+                  chunk_list.append(i)
+                else:
+                  chunk_list.append(chunk.lemma_)
 
     words = [word.lower() for word in chunk_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]
+    stops = stopwords.words('english')
+    words = [word for word in words if word not in stops]
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
 
 class CFGPreprocessing(Preprocessing):

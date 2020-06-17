@@ -172,7 +172,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
       for input_path in file_list:
         input_path = case3_file_list + '/' + input_path
         answer,_,_,_ = dropfile.dropfile(input_path,test_path,DTM,vocab,synonym_dict,preprocessing=preprocessing_name,scoring=score_name)
-    return
+      return
     vocab = None
     DTM = None
     synonym_dict = None
@@ -217,13 +217,13 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
         correct += 1
         local_correct += 1
         if interim_flag:
-          answer_name = answer.split('/')[-1]
+          answer_name = answer.split('/')[-1].split('\\')[-1]
           direct_idx = directory_name.index(answer_name)
           conf_mat[direct_idx][direct_idx] += 1
 
       else:
         if interim_flag:
-          answer_name = answer.split('/')[-1]
+          answer_name = answer.split('/')[-1].split('\\')[-1]
           label_name = label[j].split('/')[-1]
           orig_idx = directory_name.index(label_name)
           direct_idx = directory_name.index(answer_name)

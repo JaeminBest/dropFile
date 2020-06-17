@@ -69,6 +69,21 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     # dir_path = dir_list[label_score.index(max(label_score))]
     # print(dir_path)
 
+    case = os.listdir(root_path)[0]
+    print(f"********** {case} store score ********")
+    with open(f'MaxMinDev_{case}', 'wb') as file:
+      score_max = np.max(score_arr)
+      score_min = np.min(score_arr)
+      dev = score_max - score_min
+      MaxMindict = defaultdict(list)
+      if OSTYPE == "Darwin":
+        MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+      elif OSTYPE == "Linux":
+        MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+      else:
+        MaxMindict[input_file.split("\\")[-1]] = [score_max, score_min, dev]
+      pickle.dump(MaxMindict, file)
+
     directory_name = [path.split('/')[-1] for path in dir_list]
     y = score_arr
     x = np.arange(len(y))
@@ -135,6 +150,21 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   final_label_score = np.array([0.0] * score_arr.shape[1])
   for i in range(score_arr.shape[0]):
     final_label_score += score_arr[i]*ensembles[i]["weight"]
+
+  case = os.listdir(root_path)[0]
+  print(f"********** {case} store score ********")
+  with open(f'MaxMinDev_{case}', 'wb') as file:
+    score_max = np.max(score_arr)
+    score_min = np.min(score_arr)
+    dev = score_max - score_min
+    MaxMindict = defaultdict(list)
+    if OSTYPE == "Darwin":
+      MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+    elif OSTYPE == "Linux":
+      MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+    else:
+      MaxMindict[input_file.split("\\")[-1]] = [score_max, score_min, dev]
+    pickle.dump(MaxMindict, file)
 
   print("Your OS is ", OSTYPE)
   directory_name = [path.split('/')[-1] for path in dir_list]
