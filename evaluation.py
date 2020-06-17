@@ -149,7 +149,8 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
   
   if interim_flag:
     conf_mat = [[0 for _ in range(len(dir_list))] for _ in range(len(dir_list))] # 3x3 or 4x4 confusion matrix
-  
+
+  case3_file_list = './test/pl'
   trial = 0
   correct = 0
   total_len = len(combination)
@@ -160,6 +161,18 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
     print("evaluating combination set {}/{}".format(i,total_len))
     # create test environment
     test_path, label, testset = prepare_env(i+1,file_list,locate_flag)
+    if root_path == './test/case3':
+      with open('./test/case1-pickle/DTM-0', 'rb') as f:
+        DTM = pickle.load(f)
+      with open('./test/case1-pickle/vocab-0', 'rb') as f:
+        vocab = pickle.load(f)
+      with open('./test/case1-pickle/synonym_dict-0', 'rb') as f:
+        synonym_dict = pickle.load(f)
+      file_list = os.listdir(case3_file_list)
+      for input_path in file_list:
+        input_path = case3_file_list + '/' + input_path
+        answer,_,_,_ = dropfile.dropfile(input_path,test_path,DTM,vocab,synonym_dict,preprocessing=preprocessing_name,scoring=score_name)
+    return
     vocab = None
     DTM = None
     synonym_dict = None

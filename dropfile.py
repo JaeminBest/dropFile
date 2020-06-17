@@ -60,8 +60,10 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     if verbose:
       print(label_score)
 
-    score_arr = np.array(label_score)
-    score_arr[0] = score_arr[0] / sum(score_arr[0])
+    score_arr = np.array(label_score).astype(float)
+    score_arr = score_arr / sum(score_arr)
+    # score_arr = np.array(label_score)
+    # score_arr[0] = score_arr[0] / sum(score_arr[0])
 
     dir_path = dir_list[score_arr.argmax()]
     # dir_path = dir_list[label_score.index(max(label_score))]
@@ -77,7 +79,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
       plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
     else:  # Windows
       plt.title(
-        "Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '_' + input_file.split("\\")[-1]))
+        "Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
     plt.bar(x, y, color="blue")
     plt.xticks(x, xlabel)
     if OSTYPE == "Darwin":
@@ -85,8 +87,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     elif OSTYPE == "Linux":
       plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
     else:  # Windows
-      plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
-                                              input_file.split('/')[-1].split("\\")[-1]))
+      plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
 
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
