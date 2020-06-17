@@ -12,7 +12,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import os
 import pickle
+import platform
 
+OSTYPE = platform.system()
 
 # main body of program: DropFile
 # input : input file path, root path
@@ -68,11 +70,23 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     y = score_arr
     x = np.arange(len(y))
     xlabel = directory_name
-    plt.title("Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '/' +input_file.split("\\")[-1]))
-    plt.bar(x, y, color="Default blue")
+    if OSTYPE == "Darwin":
+      plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    elif OSTYPE == "Linux":
+      plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    else:  # Windows
+      plt.title(
+        "Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '_' + input_file.split("\\")[-1]))
+    plt.bar(x, y, color="blue")
     plt.xticks(x, xlabel)
-    plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
-                input_file.split('/')[-1].split("\\")[-1]))
+    if OSTYPE == "Darwin":
+      plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    elif OSTYPE == "Linux":
+      plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    else:  # Windows
+      plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
+                                              input_file.split('/')[-1].split("\\")[-1]))
+
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
@@ -118,15 +132,28 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   for i in range(score_arr.shape[0]):
     final_label_score += score_arr[i]*ensembles[i]["weight"]
 
+  print("Your OS is ", OSTYPE)
   directory_name = [path.split('/')[-1] for path in dir_list]
   y = final_label_score
   x = np.arange(len(y))
   xlabel = directory_name
-  plt.title("Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '/' + input_file.split("\\")[-1]))
+  if OSTYPE == "Darwin":
+    plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  elif OSTYPE == "Linux":
+    plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  else:  # Windows
+    plt.title("Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '_' + input_file.split("\\")[-1]))
+
   plt.bar(x, y, color="blue")
   plt.xticks(x, xlabel)
-  plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
-                                          input_file.split('/')[-1].split("\\")[-1]))
+
+  if OSTYPE == "Darwin":
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  elif OSTYPE == "Linux":
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  else:  # Windows
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
+                                            input_file.split('/')[-1].split("\\")[-1]))
   try:
     dir_path = dir_list[final_label_score.argmax()]
   except:
