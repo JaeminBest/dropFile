@@ -15,12 +15,14 @@ import pickle
 import platform
 
 OSTYPE = platform.system()
+plot_number = 0
 
 # main body of program: DropFile
 # input : input file path, root path
 # output : recommended path
 def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None, verbose=True, preprocessing=None, scoring=None):
   os.environ['DROPFILE_LOGLEVEL'] = "1" if verbose else "0"
+  global plot_number
 
   normalpreprocessing = Preprocessing()
   dspreprocessing = DependencyStructurePreprocessing()
@@ -84,7 +86,9 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
         MaxMindict[input_file.split("\\")[-1]] = [score_max, score_min, dev]
       pickle.dump(MaxMindict, file)
 
-    directory_name = [path.split('/')[-1] for path in dir_list]
+    plt.figure(plot_number)
+    plot_number += 1
+    directory_name = [path.split('/')[-1].split('\\')[-1] for path in dir_list]
     y = score_arr
     x = np.arange(len(y))
     xlabel = directory_name
@@ -94,7 +98,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
       plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
     else:  # Windows
       plt.title(
-        "Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+        "Label Score of {}".format(input_file.split('\\')[-2] + '_' + input_file.split("\\")[-1]))
     plt.bar(x, y, color="blue")
     plt.xticks(x, xlabel)
     if OSTYPE == "Darwin":
@@ -102,7 +106,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     elif OSTYPE == "Linux":
       plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
     else:  # Windows
-      plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+      plt.savefig("label_score_{}.png".format(input_file.split('\\')[-2] + '_' + input_file.split("\\")[-1]))
 
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
@@ -154,8 +158,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   case = os.listdir(root_path)[0]
   print(f"********** {case} store score ********")
   with open(f'MaxMinDev_{case}', 'wb') as file:  # OS dependency
-    score_max = np.max(score_arr)
-    score_min = np.min(score_arr)
+    score_max = np.max(final_label_score)
+    score_min = np.min(final_label_score)
     dev = score_max - score_min
     MaxMindict = defaultdict(list)
     if OSTYPE == "Darwin":
@@ -167,7 +171,9 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     pickle.dump(MaxMindict, file)
 
   print("Your OS is ", OSTYPE)
-  directory_name = [path.split('/')[-1] for path in dir_list]
+  plt.figure(plot_number)
+  plot_number += 1
+  directory_name = [path.split('/')[-1].split('\\')[-1] for path in dir_list]
   y = final_label_score
   x = np.arange(len(y))
   xlabel = directory_name
