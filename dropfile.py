@@ -194,6 +194,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   else:  # Windows
     plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
                                             input_file.split('/')[-1].split("\\")[-1]))
+
+  plt.close(plot_number-1)
   try:
     dir_path = dir_list[final_label_score.argmax()]
   except:
