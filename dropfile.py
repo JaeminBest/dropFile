@@ -42,7 +42,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
 
   if preprocessing is not None and scoring is not None:
     preprocessing_list = ["Preprocessing", "DependencyStructurePreprocessing", "NounPhrasePreprocessing",
-                          "NounPreprocessing", "SpacyPreprocessing", "TargetWordChunkingPreprocessing"]
+                          "NounPreprocessing", "SpacyPreprocessing", "TargetWordChunkingPreprocessing","CFGPreprocessing"]
     if preprocessing not in preprocessing_list:
       print("Enter the valid preprocessing name")
       return

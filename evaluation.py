@@ -134,9 +134,6 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
     dir_list.append(tar_dir)
     label_num += 1
   random.shuffle(file_list)
-  if interim_flag:
-     if (len(dir_list) not in [3,4]):
-       raise Exception("you should put only 3 or 4 directories in ROOT_PATH")
       
   # making directory name list
   directory_name = [ path.split('/')[-1] for path in dir_list]
@@ -242,8 +239,8 @@ if __name__=='__main__':
   parser.add_argument('-r', '--root-path', help='root path that input file should be classified into',
                       type=str, action='store', default='./test/case2-3')
   parser.add_argument('-e', help='experiment option for interim report', default=True, action='store_true')
-  parser.add_argument('-a', help='name of preprocessing ', default=None, action='store_true')
-  parser.add_argument('-b', help='name of score ', default=None, action='store_true')
+  parser.add_argument('-a', help='name of preprocessing ', type=str, default=None, action='store')
+  parser.add_argument('-b', help='name of score ', type=str, default=None, action='store')
   args = parser.parse_args()
 
   print("Running Evaluation DropFile...")
