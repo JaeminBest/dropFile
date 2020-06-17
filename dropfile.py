@@ -71,7 +71,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
 
     case = os.listdir(root_path)[0]
     print(f"********** {case} store score ********")
-    with open(f'MaxMinDev_{case}', 'wb') as file:
+    with open(f'MaxMinDev_{case}', 'wb') as file:  # OS dependency
       score_max = np.max(score_arr)
       score_min = np.min(score_arr)
       dev = score_max - score_min
@@ -153,7 +153,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
 
   case = os.listdir(root_path)[0]
   print(f"********** {case} store score ********")
-  with open(f'MaxMinDev_{case}', 'wb') as file:
+  with open(f'MaxMinDev_{case}', 'wb') as file:  # OS dependency
     score_max = np.max(score_arr)
     score_min = np.min(score_arr)
     dev = score_max - score_min

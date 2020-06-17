@@ -138,7 +138,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
   random.shuffle(file_list)
       
   # making directory name list
-  directory_name = [ path.split('/')[-1].split('\\')[-1] for path in dir_list]
+  directory_name = [ path.split('/')[-1].split('\\')[-1] for path in dir_list]  # OS dependency
   
   # calculate combination
   print("Calculating Evaluation combination..")
@@ -223,8 +223,8 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
 
       else:
         if interim_flag:
-          answer_name = answer.split('/')[-1].split('\\')[-1]
-          label_name = label[j].split('/')[-1].split('\\')[-1]
+          answer_name = answer.split('/')[-1].split('\\')[-1]  # OS dependency
+          label_name = label[j].split('/')[-1].split('\\')[-1]  # OS dependency
           orig_idx = directory_name.index(label_name)
           direct_idx = directory_name.index(answer_name)
           conf_mat[orig_idx][direct_idx] += 1
