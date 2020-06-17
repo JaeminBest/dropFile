@@ -107,7 +107,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
       plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
     else:  # Windows
       plt.savefig("label_score_{}.png".format(input_file.split('\\')[-2] + '_' + input_file.split("\\")[-1]))
-
+    plt.close(plot_number - 1)
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
