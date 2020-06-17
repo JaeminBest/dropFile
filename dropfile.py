@@ -68,10 +68,11 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     y = score_arr
     x = np.arange(len(y))
     xlabel = directory_name
-    plt.title("Label Score of {}".format(input_file.split("\\")[-1]))
-    plt.bar(x, y)
-    plt.xticks(x, xlabel, color="blue")
-    plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-1]))
+    plt.title("Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '/' +input_file.split("\\")[-1]))
+    plt.bar(x, y, color="Default blue")
+    plt.xticks(x, xlabel)
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
+                input_file.split('/')[-1].split("\\")[-1]))
     return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
@@ -117,10 +118,19 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
   for i in range(score_arr.shape[0]):
     final_label_score += score_arr[i]*ensembles[i]["weight"]
 
+  directory_name = [path.split('/')[-1] for path in dir_list]
+  y = final_label_score
+  x = np.arange(len(y))
+  xlabel = directory_name
+  plt.title("Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '/' + input_file.split("\\")[-1]))
+  plt.bar(x, y, color="blue")
+  plt.xticks(x, xlabel)
+  plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
+                                          input_file.split('/')[-1].split("\\")[-1]))
   try:
-      dir_path = dir_list[final_label_score.argmax()]
+    dir_path = dir_list[final_label_score.argmax()]
   except:
-      dir_path = ''
+    dir_path = ''
   # dir_path = dir_list[label_score.index(max(label_score))]
   # print(dir_path)
   return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
