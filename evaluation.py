@@ -224,7 +224,7 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
       else:
         if interim_flag:
           answer_name = answer.split('/')[-1].split('\\')[-1]
-          label_name = label[j].split('/')[-1]
+          label_name = label[j].split('/')[-1].split('\\')[-1]
           orig_idx = directory_name.index(label_name)
           direct_idx = directory_name.index(answer_name)
           conf_mat[orig_idx][direct_idx] += 1
