@@ -3,3 +3,4 @@ test
 *.pyc
 eval*
 ./pdf.py
+*.png

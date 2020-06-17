@@ -41,6 +41,8 @@ def prepare_env(comb_num: int, file_list: list, locate_flag: list):
   label = ["" for _ in range(len(file_list))]
 
   find_common_parent_dir = []
+  if test_path in os.listdir(current_path):
+    shutil.rmtree(test_path)
   if test_path not in os.listdir(current_path):
     os.makedirs(test_path, exist_ok=True)
 
@@ -168,11 +170,11 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
       trial +=1
       # case3 (case1을 가져와서 새로운 file 넣기(score가 일정해야함))
       if root_path == './test/case3':
-        with open('./test/case1/DTM-{}'.format(i), 'rb') as f:
+        with open('./test/case1-pickle/DTM-{}'.format(i), 'rb') as f:
           DTM = pickle.load(f)
-        with open('./test/case1/vocab-{}'.format(i), 'rb') as f:
+        with open('./test/case1-pickle/vocab-{}'.format(i), 'rb') as f:
           vocab = pickle.load(f)
-        with open('./test/case1/synonym_dict-{}'.format(i), 'rb') as f:
+        with open('./test/case1-pickle/synonym_dict-{}'.format(i), 'rb') as f:
           synonym_dict = pickle.load(f)
 
       elif os.path.isfile(pickle_path+'/DTM-{}'.format(i)):
