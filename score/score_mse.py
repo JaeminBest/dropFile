@@ -34,6 +34,7 @@ def softmax(a):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
+
 def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=True):
   if 'DROPFILE_LOGLEVEL' in os.environ:
     verbose = int(os.environ['DROPFILE_LOGLEVEL'])
@@ -68,6 +69,7 @@ def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
   # preprocessing : build BoW, DTM score of input file
   
   dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):

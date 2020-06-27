@@ -13,6 +13,7 @@ from nltk.probability import FreqDist
 from nltk import CFG
 from nltk import RecursiveDescentParser
 import spacy
+import pickle
 import time
 
 print("Loading spacy!")
@@ -46,12 +47,10 @@ class Preprocessing():
           if os.path.isdir(full_filename):
             self.lookup_directory(full_filename, directory_dict)
           else:
-            extension = os.path.splitext(full_filename)[-1]
-            if extension == '.pdf':
-              if root_path in directory_dict:
-                directory_dict[root_path].append(full_filename)
-              else:
-                directory_dict[root_path] = [full_filename]
+            if root_path in directory_dict:
+              directory_dict[root_path].append(full_filename)
+            else:
+              directory_dict[root_path] = [full_filename]
       else:
         return directory_dict # add return value
     except PermissionError:
@@ -64,11 +63,14 @@ class Preprocessing():
   # output : text
   # implementation : pdfminer 라이브러리 사용 (ref: https://lsjsj92.tistory.com/304)
   def file2text(self, file_path: str):
-    start = time.time()
-    text = extract_text(file_path) # extract text from pdf file
-    if self.verbose:
-        print(f"raw text : {text[:100]}")
-        print(f"extract_text takes {time.time()-start:.4f} s.")
+    with open(file_path, 'rb') as f:
+      text = pickle.load(f) # 이제 모든 강의파일은 pickle로 저장되있음 (not pdf)
+
+    # start = time.time()
+    # text = extract_text(file_path) # extract text from pdf file
+    # if self.verbose:
+    #     print(f"raw text : {text[:100]}")
+    #     print(f"extract_text takes {time.time()-start:.4f} s.")
     return text
 
   # function : convert text into list of parsed token
@@ -265,17 +267,31 @@ class TargetWordChunkingPreprocessing(Preprocessing):
     for sent in doc.sents:
       if flag > 0:
         for chunk in sent.noun_chunks:
-          chunk_list.append(chunk.lemma_)
-          flag -= 1
-      for token in sent:
-        if token.lemma_ in target_word:
-          flag = 2
-          for chunk in sent.noun_chunks:
+          if " " in chunk.lemma_:
+            temp_chunk = chunk.lemma_.split(" ")
+            for i in temp_chunk:
+              chunk_list.append(i)
+          else:
             chunk_list.append(chunk.lemma_)
+        flag -= 1
+      else:
+        for token in sent:
+          if token.lemma_ in target_word:
+            flag = 2
+            for chunk in sent.noun_chunks:
+              if " " in chunk.lemma_:
+                temp_chunk = chunk.lemma_.split(" ")
+                for i in temp_chunk:
+                  chunk_list.append(i)
+                else:
+                  chunk_list.append(chunk.lemma_)
 
     words = [word.lower() for word in chunk_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]
-
+    stops = stopwords.words('english')
+    words = [word for word in words if word not in stops]
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
 
 class CFGPreprocessing(Preprocessing):

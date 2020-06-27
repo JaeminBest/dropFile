@@ -1,23 +1,28 @@
 import argparse
 import time
-from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
-from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
-from .preprocessing.preprocessing import CFGPreprocessing
-from .score.score_bayes import score_bayes
-from .score.score_cosine import score_cosine
-from .score.score_mse import score_mse
-from .score.score_CFG import score_CFG
-
+from preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
+from preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
+from preprocessing.preprocessing import CFGPreprocessing
+from score.score_bayes import score_bayes
+from score.score_cosine import score_cosine
+from score.score_mse import score_mse
+from score.score_CFG import score_CFG
 import numpy as np
 from collections import defaultdict
+import matplotlib.pyplot as plt
 import os
 import pickle
+import platform
+
+OSTYPE = platform.system()
+plot_number = 0
 
 # main body of program: DropFile
 # input : input file path, root path
 # output : recommended path
-def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None, verbose=False):
+def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None, cached_synonym_dict=None, verbose=True, preprocessing=None, scoring=None):
   os.environ['DROPFILE_LOGLEVEL'] = "1" if verbose else "0"
+  global plot_number
 
   normalpreprocessing = Preprocessing()
   dspreprocessing = DependencyStructurePreprocessing()
@@ -33,16 +38,87 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
                         "SpacyPreprocessing": spacypreprocessing,
                         "TargetWordChunkingPreprocessing": twcpreprocessing,
                         "CFGPreprocessing": cfgpreprocessing}
+  scoring_dict = {"score_mse": score_mse,
+                  "score_cosine": score_cosine,
+                  "score_bayes": score_bayes,
+                  "score_CFG": score_CFG}
+  
+
+  if preprocessing is not None and scoring is not None:
+    preprocessing_list = ["Preprocessing", "DependencyStructurePreprocessing", "NounPhrasePreprocessing",
+                          "NounPreprocessing", "SpacyPreprocessing", "TargetWordChunkingPreprocessing","CFGPreprocessing"]
+    if preprocessing not in preprocessing_list:
+      print("Enter the valid preprocessing name")
+      return
+
+    if preprocessing in cached_DTM and preprocessing in cached_vocab and preprocessing in cached_synonym_dict:
+      dir_list, label_score, _, _, _ = \
+        scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing],
+        cached_DTM[preprocessing], cached_vocab[preprocessing],
+        cached_synonym_dict[preprocessing])
+    else:
+      dir_list, label_score, _, _, _ = \
+        scoring_dict[scoring](input_file, root_path, preprocessing_dict[preprocessing], None, None, None)
+    if verbose:
+      print(label_score)
+
+    score_arr = np.array(label_score).astype(float)
+    score_arr = score_arr / sum(score_arr)
+    # score_arr = np.array(label_score)
+    # score_arr[0] = score_arr[0] / sum(score_arr[0])
+
+    dir_path = dir_list[score_arr.argmax()]
+    # dir_path = dir_list[label_score.index(max(label_score))]
+    # print(dir_path)
+
+    case = os.listdir(root_path)[0]
+    print(f"********** {case} store score ********")
+    with open(f'MaxMinDev_{case}', 'wb') as file:  # OS dependency
+      score_max = np.max(score_arr)
+      score_min = np.min(score_arr)
+      dev = score_max - score_min
+      MaxMindict = defaultdict(list)
+      if OSTYPE == "Darwin":
+        MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+      elif OSTYPE == "Linux":
+        MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+      else:
+        MaxMindict[input_file.split("\\")[-1]] = [score_max, score_min, dev]
+      pickle.dump(MaxMindict, file)
+
+    plt.figure(plot_number)
+    plot_number += 1
+    directory_name = [path.split('/')[-1].split('\\')[-1] for path in dir_list]
+    y = score_arr
+    x = np.arange(len(y))
+    xlabel = directory_name
+    if OSTYPE == "Darwin":
+      plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    elif OSTYPE == "Linux":
+      plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    else:  # Windows
+      plt.title(
+        "Label Score of {}".format(input_file.split('\\')[-2] + '_' + input_file.split("\\")[-1]))
+    plt.bar(x, y, color="blue")
+    plt.xticks(x, xlabel)
+    if OSTYPE == "Darwin":
+      plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    elif OSTYPE == "Linux":
+      plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+    else:  # Windows
+      plt.savefig("label_score_{}.png".format(input_file.split('\\')[-2] + '_' + input_file.split("\\")[-1]))
+    plt.close(plot_number - 1)
+    return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
   ensembles = [
-               # {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "DependencyStructurePreprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "NounPhrasePreprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "NounPreprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "Preprocessing", "scoring": score_bayes, "weight": 1},
-               # {"preprocessing": "SpacyPreprocessing", "scoring": score_cosine, "weight": 1},
-               # {"preprocessing": "Preprocessing", "scoring": score_mse, "weight": 1},
-              {"preprocessing": "CFGPreprocessing", "scoring": score_CFG, "weight": 1},
+               {"preprocessing": "Preprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "DependencyStructurePreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "NounPhrasePreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "NounPreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "Preprocessing", "scoring": score_bayes, "weight": 1},
+               {"preprocessing": "SpacyPreprocessing", "scoring": score_cosine, "weight": 1},
+               {"preprocessing": "Preprocessing", "scoring": score_mse, "weight": 1},
+               {"preprocessing": "CFGPreprocessing", "scoring": score_CFG, "weight": 1},
               ]
 
   label_scores = []
@@ -71,16 +147,59 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     label_scores.append(label_score)
 
   score_arr = np.array(label_scores)
+  for i in range(score_arr.shape[0]):
+    score_arr[i] = score_arr[i]/sum(score_arr[i])
   if verbose:
       print(score_arr)
   final_label_score = np.array([0.0] * score_arr.shape[1])
   for i in range(score_arr.shape[0]):
     final_label_score += score_arr[i]*ensembles[i]["weight"]
 
+  case = os.listdir(root_path)[0]
+  print(f"********** {case} store score ********")
+  with open(f'MaxMinDev_{case}', 'wb') as file:  # OS dependency
+    score_max = np.max(final_label_score)
+    score_min = np.min(final_label_score)
+    dev = score_max - score_min
+    MaxMindict = defaultdict(list)
+    if OSTYPE == "Darwin":
+      MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+    elif OSTYPE == "Linux":
+      MaxMindict[input_file.split("/")[-1]] = [score_max, score_min, dev]
+    else:
+      MaxMindict[input_file.split("\\")[-1]] = [score_max, score_min, dev]
+    pickle.dump(MaxMindict, file)
+
+  print("Your OS is ", OSTYPE)
+  plt.figure(plot_number)
+  plot_number += 1
+  directory_name = [path.split('/')[-1].split('\\')[-1] for path in dir_list]
+  y = final_label_score
+  x = np.arange(len(y))
+  xlabel = directory_name
+  if OSTYPE == "Darwin":
+    plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  elif OSTYPE == "Linux":
+    plt.title("Label Score of {}".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  else:  # Windows
+    plt.title("Label Score of {}".format(input_file.split('/')[-1].split("\\")[-2] + '_' + input_file.split("\\")[-1]))
+
+  plt.bar(x, y, color="blue")
+  plt.xticks(x, xlabel)
+
+  if OSTYPE == "Darwin":
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  elif OSTYPE == "Linux":
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-2] + '_' + input_file.split("/")[-1]))
+  else:  # Windows
+    plt.savefig("label_score_{}.png".format(input_file.split('/')[-1].split("\\")[-2] + '_' +
+                                            input_file.split('/')[-1].split("\\")[-1]))
+
+  plt.close(plot_number-1)
   try:
-      dir_path = dir_list[final_label_score.argmax()]
+    dir_path = dir_list[final_label_score.argmax()]
   except:
-      dir_path = ''
+    dir_path = ''
   # dir_path = dir_list[label_score.index(max(label_score))]
   # print(dir_path)
   return dir_path, cached_DTM, cached_vocab, cached_synonym_dict

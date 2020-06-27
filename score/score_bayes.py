@@ -79,8 +79,8 @@ class NaiveBayes():
         soft = new_softmax(prob)
         print("Softmax : {} ".format(soft))
 
-        if soft != []:
-            index = soft.index(max(soft))
+        if prob != []:
+            index = prob.index(max(prob))
         else:
             index = 0
 
@@ -90,7 +90,7 @@ class NaiveBayes():
 # input : input file path, root path 
 
 # output : recommended path
-def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
+def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
     dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter

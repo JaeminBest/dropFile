@@ -34,6 +34,7 @@ def softmax(a):
 # main body of program: DropFile
 # input : input file path, root path 
 # output : recommended path
+
 def score_cosine(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
   if 'DROPFILE_LOGLEVEL' in os.environ:
     verbose = int(os.environ['DROPFILE_LOGLEVEL'])
@@ -68,6 +69,7 @@ def score_cosine(input_file: str, root_path: str, preprocessing, DTM=None, vocab
   # preprocessing : build BoW, DTM score of input file
   
   dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
@@ -79,11 +81,15 @@ def score_cosine(input_file: str, root_path: str, preprocessing, DTM=None, vocab
   # calculate label score
   # result will be score of each directory
   label_score = [0.0 for i in range(label_num)]
+
   offset = 0
   for label, tar_dir in enumerate(dir_list):
     file_num = len(dir_hierarchy[tar_dir])
+    # print("file num is  ", file_num)
+    # print("label is ", label)
     for j in range(file_num):
       label_score[label] += sim_vec[offset+j]
+      # print(label_score)
     label_score[label] /= file_num
     offset += file_num
 

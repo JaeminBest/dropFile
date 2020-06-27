@@ -2,3 +2,5 @@ test
 !**/__pycache__/
 *.pyc
 eval*
+./pdf.py
+*.png
