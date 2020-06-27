@@ -136,7 +136,6 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
     dir_list.append(tar_dir)
     label_num += 1
   random.shuffle(file_list)
-  print(list(set(file_list)))
   
   # making directory name list
   directory_name = [path.split('/')[-1].split('\\')[-1] for path in dir_list]  # OS dependency
