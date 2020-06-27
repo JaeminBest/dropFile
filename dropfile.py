@@ -1,18 +1,27 @@
 import argparse
 import time
-from preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
-from preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
-from preprocessing.preprocessing import CFGPreprocessing
-from score.score_bayes import score_bayes
-from score.score_cosine import score_cosine
-from score.score_mse import score_mse
-from score.score_CFG import score_CFG
 import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
 import os
 import pickle
 import platform
+try:
+  from preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
+  from preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
+  from preprocessing.preprocessing import CFGPreprocessing
+  from score.score_bayes import score_bayes
+  from score.score_cosine import score_cosine
+  from score.score_mse import score_mse
+  from score.score_CFG import score_CFG
+except ImportError:
+  from .preprocessing.preprocessing import Preprocessing, DependencyStructurePreprocessing, NounPhrasePreprocessing
+  from .preprocessing.preprocessing import NounPreprocessing, SpacyPreprocessing, TargetWordChunkingPreprocessing
+  from .preprocessing.preprocessing import CFGPreprocessing
+  from .score.score_bayes import score_bayes
+  from .score.score_cosine import score_cosine
+  from .score.score_mse import score_mse
+  from .score.score_CFG import score_CFG
 
 OSTYPE = platform.system()
 plot_number = 0
