@@ -5,22 +5,8 @@ import numpy as np
 from collections import defaultdict
 import os
 
-def softmax(a):
-  exp_a = np.exp(a)
-  sum_exp_a = np.sum(exp_a)
-  y = exp_a / sum_exp_a
 
-  return y
-
-# Softmax function 
-
-def softmax(a):
-    exp_a = np.exp(a)
-    sum_exp_a = np.sum(exp_a)
-    y = exp_a / sum_exp_a
-
-    return y
-
+# new softmax function for bayes classifier
 def new_softmax(a):
     c = np.max(a)
     exp_a = np.exp(a-c)
@@ -33,7 +19,6 @@ def new_softmax(a):
 # NaiveBayes class 
 # I asssume that priors are same for all directories. So I only considered likelihood of words. 
 # ===============================================================================================
-
 class NaiveBayes():
     def __init__(self, num_vocab, num_classes):
         if 'DROPFILE_LOGLEVEL' in os.environ:
@@ -53,14 +38,10 @@ class NaiveBayes():
     # output - log_likelihood : ndarray of  P with shape (num_classes, num_vocab) 
     # where P[c,w] is the log likelihood of word w and given class c. 
     def get_likelihood_with_smoothing(self, bows):
-        
         self.class_and_word_to_counts = np.asarray(bows)
-
         likelihood_array = np.zeros((self.num_classes, self.num_vocab))
         for i in range(len(likelihood_array)):
             likelihood_array[i] = (self.class_and_word_to_counts[i] + 1) / np.sum(self.class_and_word_to_counts[i]+1)
-            
-
         self.log_likelihood = np.log(likelihood_array)
 
     # predict class (directory) by posterior,  p(c_k|w_1, ..., w_n) ~ sum(log(p(w_i|c_k)))
@@ -68,19 +49,18 @@ class NaiveBayes():
     # output - index : index of class that has highest posterior.
     # output - soft : softmax result list of all classes.
     def predict(self, bow):
-
         prob = [0]* self.num_classes
-
         for i in range(len(prob)):
             prob[i] = np.sum(bow * self.log_likelihood[i])
             if self.verbose:
                 print("posterior {}-th : {} ".format(i,prob[i]))
 
         soft = new_softmax(prob)
-        print("Softmax : {} ".format(soft))
+        if self.verbose:
+            print("Softmax : {} ".format(soft))
 
-        if soft != []:
-            index = soft.index(max(soft))
+        if prob != []:
+            index = prob.index(max(prob))
         else:
             index = 0
 
@@ -88,9 +68,8 @@ class NaiveBayes():
 
 # main body of program: DropFile
 # input : input file path, root path 
-
 # output : recommended path
-def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
+def score_bayes(input_file, root_path: str, preprocessing, DTM=None, vocab=None, synonym_dict=None, mse=False):
     # preprocessing : lookup hierarchy of root path
     directory_dict = defaultdict(list) # empty dictionary for lookup_directory function
     dir_hierarchy = preprocessing.lookup_directory(root_path, directory_dict) # change it to have 2 parameter
@@ -109,6 +88,7 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
         for file in file_list:
             doc_list.append(preprocessing.file2tok(file))
         vocab, synonym_dict = preprocessing.build_vocab(doc_list)
+        
         # preprocessing : build DTM of files under root_path
         DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
     
@@ -135,10 +115,7 @@ def score_bayes(input_file: str, root_path: str, preprocessing, DTM=None, vocab=
     naivebayes.get_likelihood_with_smoothing(label_DTM)
 
     # predict the directory 
-
     index, prob = naivebayes.predict(dtm_vec)
-    if index < len(dir_list):
-        dir_path = dir_list[index]
 
     return dir_list, prob, DTM, vocab, synonym_dict
 

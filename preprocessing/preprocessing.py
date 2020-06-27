@@ -13,10 +13,14 @@ from nltk.probability import FreqDist
 from nltk import CFG
 from nltk import RecursiveDescentParser
 import spacy
+import pickle
 import time
 
 print("Loading spacy!")
-nlp = spacy.load('en_core_web_lg')
+try:
+  nlp = spacy.load('en_core_web_lg')
+except: 
+  nlp = spacy.load('en_core_web_sm')
 
 
 
@@ -46,12 +50,10 @@ class Preprocessing():
           if os.path.isdir(full_filename):
             self.lookup_directory(full_filename, directory_dict)
           else:
-            extension = os.path.splitext(full_filename)[-1]
-            if extension == '.pdf':
-              if root_path in directory_dict:
-                directory_dict[root_path].append(full_filename)
-              else:
-                directory_dict[root_path] = [full_filename]
+            if root_path in directory_dict:
+              directory_dict[root_path].append(full_filename)
+            else:
+              directory_dict[root_path] = [full_filename]
       else:
         return directory_dict # add return value
     except PermissionError:
@@ -64,11 +66,8 @@ class Preprocessing():
   # output : text
   # implementation : pdfminer 라이브러리 사용 (ref: https://lsjsj92.tistory.com/304)
   def file2text(self, file_path: str):
-    start = time.time()
-    text = extract_text(file_path) # extract text from pdf file
-    if self.verbose:
-        print(f"raw text : {text[:100]}")
-        print(f"extract_text takes {time.time()-start:.4f} s.")
+    with open(file_path, 'rb') as f:
+      text = pickle.load(f) # 이제 모든 강의파일은 pickle로 저장되있음 (not pdf)
     return text
 
   # function : convert text into list of parsed token
@@ -79,10 +78,9 @@ class Preprocessing():
     words = word_tokenize(text) # tokenize words by nltk word_toknizer
     stops = stopwords.words('english')
     start = time.time()
-    words = [word.lower() for word in words] # convert uppercase to lowercase
+    words = [word.lower() for word in words if len(word)<=20 ] # convert uppercase to lowercase
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)] # regex version of above line
     words = [lm.lemmatize(word) for word in words] # lemmatize words
-    # words = [word for word in words if word not in common_word_list] # exclude common words in corpus
     if self.verbose:
         print(f"After tokenize : {words[:30]}")
         print(f"text2tok takes {time.time()-start:.4f} s.")
@@ -90,6 +88,8 @@ class Preprocessing():
 
   # root path로부터 vocabulary를 만들기 위한 함수 (file2tok, build_vocab)
   def file2tok(self, file_path: str):
+    print("=====================")
+    print(file_path)
     txt = self.file2text(file_path)
     tok = self.text2tok(txt)
     return tok
@@ -248,16 +248,14 @@ class TargetWordChunkingPreprocessing(Preprocessing):
   # target word : 강의의 요점이나 핵심이 담길 만한 단어
   # method : target word가 등장한 문장, 그 다음 두 문장까지 문장에서 Noun phrase를 추출하여 DTM 구성
   def text2tok(self, text: str):
-    target_word = ["purpose", "object", "goal", "objective", "aim", "learn", "study", "overview"]
-    grammar = CFG.fromstring("""
-    S -> NP VP
-    VP -> V NP | V NP PP
-    PP -> P NP
-    V -> learn | study
-    Det -> "a" | "an" | "the" | "our"
-    N -> "goal" | "purpose" | "object" | "overview"
-    P -> "in" | "on" | "at" | "by" | "with" | "about"
-    """)
+    target_word = ['learn', 'study', 'represent', 'summary', 'structure', 'application', 'apply','involve', 'base','require','achieve', 'course','determine', 'property', 'develop','create']
+    grammar = CFG.fromstring(new_grammar = r"""
+      S -> NP VP | VP
+      NP -> N | N NP | N "THAT" VP | "COMMA" NP | N "THAT" S
+      VP -> V | V VP | V NP | V "THAT" S | V S
+      N -> "NOUN"
+      V -> "BE" "VERB" | "BE" | "VERB"
+      """)
     rd_parser = RecursiveDescentParser(grammar)
     chunk_list = []
     doc = nlp(text)
@@ -265,17 +263,31 @@ class TargetWordChunkingPreprocessing(Preprocessing):
     for sent in doc.sents:
       if flag > 0:
         for chunk in sent.noun_chunks:
-          chunk_list.append(chunk.lemma_)
-          flag -= 1
-      for token in sent:
-        if token.lemma_ in target_word:
-          flag = 2
-          for chunk in sent.noun_chunks:
+          if " " in chunk.lemma_:
+            temp_chunk = chunk.lemma_.split(" ")
+            for i in temp_chunk:
+              chunk_list.append(i)
+          else:
             chunk_list.append(chunk.lemma_)
+        flag -= 1
+      else:
+        for token in sent:
+          if token.lemma_ in target_word:
+            flag = 2
+            for chunk in sent.noun_chunks:
+              if " " in chunk.lemma_:
+                temp_chunk = chunk.lemma_.split(" ")
+                for i in temp_chunk:
+                  chunk_list.append(i)
+                else:
+                  chunk_list.append(chunk.lemma_)
 
     words = [word.lower() for word in chunk_list]
     words = [word for word in words if re.match('^[a-zA-Z]\w+$', word)]
-
+    stops = stopwords.words('english')
+    words = [word for word in words if word not in stops]
+    if self.verbose:
+        print(f"After tokenize : {words[:30]}")
     return words
 
 class CFGPreprocessing(Preprocessing):
@@ -300,8 +312,6 @@ class CFGPreprocessing(Preprocessing):
   # input : file_path of input_file, vocab
   # output : DTMvec (bow)
   def build_DTMvec(self, file_path: str, vocab: dict, synonym_dict):
-    # txt = file2text(file_path)
-    # doc = text2tok(txt)
     doc = self.extract_mean(file_path)
     bow = self.build_BoW(doc, vocab, synonym_dict)
     return bow
@@ -365,7 +375,6 @@ class CFGPreprocessing(Preprocessing):
     tree_list = list()
 
     for tree in rd_parser.parse(pos_sent):
-      # print(tree)
       tree_list.append(tree)
 
     answer = list()

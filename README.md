@@ -1,47 +1,58 @@
 # DropFile (CS372 NLP Term Project)
 
+### Introduction
+When user download the new file, OS recommend the path to 'Downloads' directory or currently used directory. 
+We want to automatically recommend the correct path by analyzing the contents of downloaded file.
+That is our 'Dropfile' system.
 
 ### Quick Start
 
 ```bash
-$ mkdir test (그 후 여기에 테스트해볼 파일들을 저장해야함)
+$ mkdir test (dropFile will classify it as one of the subdirectories of the "test".)
 $ pip install -r requirement.txt
-$ python -m spacy download en_core_web_lg
-$ python3 dropfile.py -r (root_path: default ./test) -i file_path
-$ python3 evaluation.py -r (root_path: defulat ./test) -f (full evaluation)
+$ python -m spacy download en_core_web_lg/sm
+$ python dropfile.py -r (root_path: default ./test) -i file_path
+$ python evaluation.py -r (root_path: ./test/case(1/2/3/4/5/6) -a (preprocessing method) -b (score metric)
 ```
-*./test* 디렉토리에 잘 분류된 파일들을 위치시켜야한다. 용량 상의 문제로 해당 레포에는 tests 파일은 올리지 않는다.  
+*./test* manually pre-classified by person should be located.
+Due to capacity issues, pre-classified files is not posted on this repository.
 &nbsp;
 
+### How to Evaluate
 
-### 프로그램 구조
-- dropfile.py : 단일 파일 디렉토리 경로 추천
-    - function dropfile() : 경로 추천
-    - function prepare_env() : 사전 계산 후, DTM, vocab, synonym_dict 반환
-- evaluation.py : 정확도 측정을 위한 평가 코드
+With evaluation.py, you can easily measure accuracy of classification.  
+If you execute `python evaluation.py -r (root_path: ./test/case(1/2/3/4/5/6) -a (preprocessing method) -b (score metric)`,
+it creates and store two types of figures: First one is confusion matrix which shows the correct and wrong classifications,
+and seconds are bar graphs of label score of each document. The bar graphs are generated separately for all documents.  
+The all figures are stored in same location of `evaluation.py`
+&nbsp;
+
+### Environments
+All required packages are in requirement.txt.
+We recommend to use Python 3.7.4
+
+### Code Structure
+- dropfile.py : Recommend directory path of single file
+    - function dropfile() : Directory path recommendation
+    - function prepare_env() : After pre-calculation, return DTM, vocab, synonym_dict.
+                               They can be used in dropfile(),
+                               It is used for the purpose of improving performance by caching intermediate calculations.
+- evaluation.py : Measure the accuracy using K-fold validation method.
 - preprocessing
-    - preprocessing.py : 각 파일의 특성을 추출하는 전처리 코드
-        - class Preprocessing : 원래 버전
-        - class DependencyParserPreprocessing : head of dependency structure만 가져오는 버전
-        - class NounPhrasePreprocessing : head of noun phrase만 가져오는 버전
-        - class NounPreprocessing : 건호님 버전
-        - class SpacyPreprocessing : 윤석님 버전
+    - preprocessing.py : Extract features of each file.
+        - class Preprocessing : Tokenized document into words, and lemmatize. Simplest version.
+        - class DependencyParserPreprocessing : Extract only heads of all subtrees of dependency tree.
+        - class NounPhrasePreprocessing : Extract only heads of noun phrase.
+        - class NounPreprocessing : Extract only nouns.
+        - class SpacyPreprocessing : Extract roots and children of roots of dependency trees.
+        - class CFGPreprocessing : Extract noun phrases near target word, which means important words.
+        - class TargetWordChunkingPreprocessing : Traverse grammar tree, and extract important words.
 - score
-    - score_cosine.py : cosine similarity로 예측 (원래 버전)
-    - score_mse.py : mse로 예측
-    - score_bayes.py : naive bayes로 예측
-- tests : 테스트용 파일 (root_path로 설정되어 있음)  
+    - score_cosine.py : calculate score using cosine similarity.
+    - score_mse.py : calculate score using mse.
+    - score_bayes.py : calculate score using naive bayes classifier.
+    - score_CFG.py : calculate score using CFG. (variation of cosine similarity)
+- tests : Directory contains subdirectories of pre-classified files, which would be used as train set
+(default value of root_path)  
 &nbsp;  
-   
-### 중간 역할 분배 (20.05.02)
-(0) 스켈레톤 코드 작성
-(1) preprocessing.py - file2text, text2tok 담당 : pdfminer 라이브러리, nltk 라이브러리 능숙자  
-(2) preprocessing.py - tok2bow, build_DTM, build_DTMvec 담당 : nltk 라이브러리, 알고리즘 부분 능숙자  
-(3) preprocessing.py - lookup_directory, evaluation.py - prepare_env, calculate_combination 담당 : os 라이브러리 능숙자  
-(4) pipelining, debugging 담당 : python 프로그래밍에 능숙한 사람, 짧지만 주기적으로 관리할 수 있는 사람
 
-- 김재민 : (0) + (4)
-- 이윤석 : 
-- 김건호 : 
-- 박범식 : 
-- 박창현 : 

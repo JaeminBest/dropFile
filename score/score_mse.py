@@ -4,32 +4,19 @@ import numpy as np
 from collections import defaultdict
 import os
 
-# cosine similarity
-def cosine_similarity(A,B):
-  ndA = np.asarray(A)
-  ndB = np.asarray(B)
-  return np.dot(ndA,ndB)/(np.linalg.norm(ndA)*np.linalg.norm(ndB))
-
 # MSE : calculate mean squared error of two vector
 def MSE(A,B):
   n = len(A)
-
   arr_A = np.asarray(A)
   arr_B = np.asarray(B)
-
   return np.linalg.norm(arr_A-arr_B)**2/n
-
-
-
 
 # softmax
 def softmax(a):
   exp_a = np.exp(a)
   sum_exp_a = np.sum(exp_a)
   y = exp_a / sum_exp_a
-
   return y
-
 
 # main body of program: DropFile
 # input : input file path, root path 
@@ -60,14 +47,11 @@ def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
     # preprocessing : build DTM of files under root_path
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
-  # else:
-    # doc_list = list()
-    # for file in file_list:
-    #   doc_list.append(preprocessing.file2tok(file))
     
   # preprocessing : build BoW, DTM score of input file
   
   dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
@@ -89,15 +73,7 @@ def score_mse(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
 
   if verbose:
     print("label score: ", softmax(label_score))
-  # find directory that has maximum score
-
-  if label_score != []:
-    if mse:
-      dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
-    else:
-      dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
-
-  # print(dir_path)
+  
   return dir_list, label_score, DTM, vocab, synonym_dict
 
 
