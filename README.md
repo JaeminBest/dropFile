@@ -18,6 +18,15 @@ $ python evaluation.py -r (root_path: ./test/case(1/2/3/4/5/6) -a (preprocessing
 Due to capacity issues, pre-classified files is not posted on this repository.
 &nbsp;
 
+### How to Evaluate
+
+With evaluation.py, you can easily measure accuracy of classification.  
+If you execute `python evaluation.py -r (root_path: ./test/case(1/2/3/4/5/6) -a (preprocessing method) -b (score metric)`,
+it creates and store two types of figures: First one is confusion matrix which shows the correct and wrong classifications,
+and seconds are bar graphs of label score of each document. The bar graphs are generated separately for all documents.  
+The all figures are stored in same location of `evaluation.py`
+&nbsp;
+
 ### Environments
 All required packages are in requirement.txt.
 We recommend to use Python 3.7.4
