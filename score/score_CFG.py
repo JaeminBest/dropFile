@@ -6,6 +6,7 @@ import time
 import numpy as np
 from collections import defaultdict
 import os
+
 # cosine similarity
 def cosine_similarity(A,B):
   ndA = np.asarray(A)
@@ -14,29 +15,10 @@ def cosine_similarity(A,B):
   b = (np.linalg.norm(ndA)*np.linalg.norm(ndB))
   if b == 0:
     return 0
-  # print("dividend : %6.3f, divisor: %6.3f" %(a,b))
-  
   return np.dot(ndA,ndB)/(np.linalg.norm(ndA)*np.linalg.norm(ndB))
-
-# MSE : calculate mean squared error of two vector
-def MSE(A,B):
-  n = len(A)
-
-  arr_A = np.asarray(A)
-  arr_B = np.asarray(B)
-
-  return np.linalg.norm(arr_A-arr_B)**2/n
 
 def softmax(a):
   exp_a = np.exp(a)
-  sum_exp_a = np.sum(exp_a)
-  y = exp_a / sum_exp_a
-
-  return y
-
-def new_softmax(a):
-  c = np.max(a)
-  exp_a = np.exp(a-c)
   sum_exp_a = np.sum(exp_a)
   y = exp_a / sum_exp_a
   return y
@@ -70,21 +52,17 @@ def score_CFG(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
     for file in file_list:
       doc_list.append(preprocessing.extract_mean(file))
     vocab, synonym_dict = preprocessing.build_vocab(doc_list)
-    #print('vocab: {}, synonym:{}'.format(vocab,synonym_dict))
+    
     # preprocessing : build DTM of files under root_path
     DTM = preprocessing.build_DTM(doc_list, vocab, synonym_dict)
-    # print("DTM:",DTM)
     
   # preprocessing : build BoW, DTM score of input file
-  
   dtm_vec = preprocessing.build_DTMvec(input_file, vocab, synonym_dict)
+  
   # similarity calculation using cosine similarity
   sim_vec = list()
   for i in range(len(DTM)):
-    if mse:
-      sim_vec.append(MSE(DTM[i], dtm_vec)) # evaluate similarity by calculating MSE 
-    else:
-      sim_vec.append(cosine_similarity(DTM[i],dtm_vec)) # evaluate similairty by cosin_similarity
+    sim_vec.append(cosine_similarity(DTM[i],dtm_vec)) # evaluate similairty by cosin_similarity
     
   # calculate label score by getting maximum value of the directory
   # result will be score of each directory
@@ -100,14 +78,6 @@ def score_CFG(input_file: str, root_path: str, preprocessing, DTM=None, vocab=No
       
     label_score[label] = temp_max
     offset += file_num
-  # print(label_score)
-  # find directory that has maximum score
-
-  if label_score != []:
-    if mse:
-      dir_path = dir_list[label_score.index(min(label_score))] # find minimum MSE value
-    else:
-      dir_path = dir_list[label_score.index(max(label_score))] # find maximum cosin_similarity
   
   # calculate the softmax score
   soft_score = softmax(label_score)

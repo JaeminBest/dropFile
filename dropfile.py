@@ -64,12 +64,8 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
 
     score_arr = np.array(label_score).astype(float)
     score_arr = score_arr / sum(score_arr)
-    # score_arr = np.array(label_score)
-    # score_arr[0] = score_arr[0] / sum(score_arr[0])
 
     dir_path = dir_list[score_arr.argmax()]
-    # dir_path = dir_list[label_score.index(max(label_score))]
-    # print(dir_path)
 
     case = os.listdir(root_path)[0]
     print(f"********** {case} store score ********")
@@ -200,8 +196,7 @@ def dropfile(input_file: str, root_path: str, cached_DTM=None, cached_vocab=None
     dir_path = dir_list[final_label_score.argmax()]
   except:
     dir_path = ''
-  # dir_path = dir_list[label_score.index(max(label_score))]
-  # print(dir_path)
+    
   return dir_path, cached_DTM, cached_vocab, cached_synonym_dict
 
 def prepare_env(root_path: str, cached_tokens=None, verbose=False):

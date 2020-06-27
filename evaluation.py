@@ -136,9 +136,10 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
     dir_list.append(tar_dir)
     label_num += 1
   random.shuffle(file_list)
-      
+  print(list(set(file_list)))
+  
   # making directory name list
-  directory_name = [ path.split('/')[-1].split('\\')[-1] for path in dir_list]  # OS dependency
+  directory_name = [path.split('/')[-1].split('\\')[-1] for path in dir_list]  # OS dependency
   
   # calculate combination
   print("Calculating Evaluation combination..")
@@ -197,7 +198,6 @@ def evaluation(root_path: str, preprocessing_name: str, score_name: str, interim
           vocab = pickle.load(f)
         with open(pickle_path + '/synonym_dict-{}'.format(i), 'rb') as f:
           synonym_dict = pickle.load(f)
-
 
       if (vocab is None) and (DTM is None) and (synonym_dict is None):
         answer, DTM, vocab, synonym_dict = dropfile.dropfile(input_path,test_path,preprocessing=preprocessing_name,scoring=score_name)
